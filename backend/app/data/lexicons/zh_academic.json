@@ -1,0 +1,1491 @@
+{
+  "scope": "academic",
+  "rules": [
+    {
+      "pattern": "综上所述",
+      "replacements": [
+        "基于上述分析",
+        "结合以上结果"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "总而言之",
+      "replacements": [
+        "总体而言",
+        "概括地说"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "总的来说",
+      "replacements": [
+        "整体而言",
+        "总体来看"
+      ],
+      "severity": "medium",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "由此可见",
+      "replacements": [
+        "由此可以判断",
+        "这说明"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "值得注意的是",
+      "replacements": [
+        "这里需要说明",
+        "有一点需要关注"
+      ],
+      "severity": "high",
+      "note": "AI 过渡句"
+    },
+    {
+      "pattern": "需要指出的是",
+      "replacements": [
+        "需要说明",
+        "应当指出"
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "需要强调的是",
+      "replacements": [
+        "需要强调",
+        "应当强调"
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "必须指出的是",
+      "replacements": [
+        "必须说明",
+        "有必要指出"
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "不难看出",
+      "replacements": [
+        "可以看出",
+        "由此可知"
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "换言之",
+      "replacements": [
+        "也就是说"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "换句话说",
+      "replacements": [
+        "也就是说"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "简而言之",
+      "replacements": [
+        "概括地说",
+        "简言之"
+      ],
+      "severity": "medium",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "具体而言",
+      "replacements": [
+        "具体来看",
+        "就具体内容而言"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "与此同时",
+      "replacements": [
+        "同时",
+        "在此之外"
+      ],
+      "severity": "medium",
+      "note": "书面连接词"
+    },
+    {
+      "pattern": "基于此",
+      "replacements": [
+        "据此",
+        "在此基础上"
+      ],
+      "severity": "high",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "在此基础上",
+      "replacements": [
+        "据此",
+        "由此出发"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "在此背景下",
+      "replacements": [
+        "在这一背景下",
+        "面对这一情况"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "更重要的是",
+      "replacements": [
+        "更值得关注的是",
+        "进一步看"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "不仅如此",
+      "replacements": [
+        "除上述内容外",
+        "进一步看"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "进一步说",
+      "replacements": [
+        "进一步而言",
+        "就此展开"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "从某种意义上说",
+      "replacements": [
+        "在某种意义上",
+        "某种程度上"
+      ],
+      "severity": "high",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "在一定程度上",
+      "replacements": [
+        "某种程度上",
+        "部分地"
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "相对而言",
+      "replacements": [
+        "相比之下",
+        "相对来看"
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "总体而言",
+      "replacements": [
+        "整体来看",
+        "总体上"
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "客观来讲",
+      "replacements": [
+        "客观而言",
+        "从客观角度看"
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "从长远来看",
+      "replacements": [
+        "长期来看",
+        "就长期而言"
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "从整体上看",
+      "replacements": [
+        "整体来看",
+        "总体上"
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "具有重要意义",
+      "replacements": [
+        "具有参考价值",
+        "意义较为明显"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有重要的理论意义和现实意义",
+      "replacements": [
+        "在理论和实践上均有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有深远影响",
+      "replacements": [
+        "影响较为深远",
+        "影响持续存在"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "发挥着重要作用",
+      "replacements": [
+        "起到了重要作用",
+        "作用较为明显"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "发挥着关键作用",
+      "replacements": [
+        "起到了关键作用",
+        "作用较为突出"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "起到了重要作用",
+      "replacements": [
+        "起到了作用",
+        "作用较为明显"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "起到了关键作用",
+      "replacements": [
+        "起到了关键作用",
+        "作用较为突出"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "产生了积极影响",
+      "replacements": [
+        "产生了正向影响",
+        "带来了积极作用"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "提供了有力支撑",
+      "replacements": [
+        "提供了依据",
+        "构成了支撑"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "奠定了坚实基础",
+      "replacements": [
+        "提供了前提",
+        "打下了基础"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "注入了新动能",
+      "replacements": [
+        "带来了新动力",
+        "增加了动力"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "开辟了新路径",
+      "replacements": [
+        "提供了新路径",
+        "拓展了思路"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "提供了新思路",
+      "replacements": [
+        "提供了新的分析角度",
+        "拓展了分析思路"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "带来了新机遇",
+      "replacements": [
+        "带来了新的机会",
+        "形成了新的空间"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有里程碑意义",
+      "replacements": [
+        "具有节点意义",
+        "意义较为突出"
+      ],
+      "severity": "high",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "不可或缺",
+      "replacements": [
+        "不可缺少",
+        "十分必要"
+      ],
+      "severity": "high",
+      "note": "套话"
+    },
+    {
+      "pattern": "至关重要",
+      "replacements": [
+        "十分关键",
+        "尤为重要"
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "深度剖析",
+      "replacements": [
+        "深入分析",
+        "细致讨论"
+      ],
+      "severity": "high",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "有机融合",
+      "replacements": [
+        "结合",
+        "整合"
+      ],
+      "severity": "high",
+      "note": "套话"
+    },
+    {
+      "pattern": "深度融合",
+      "replacements": [
+        "紧密结合",
+        "相互渗透"
+      ],
+      "severity": "high",
+      "note": "套话"
+    },
+    {
+      "pattern": "全面提升",
+      "replacements": [
+        "整体提高"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "全方位",
+      "replacements": [
+        "多角度",
+        "较为全面"
+      ],
+      "severity": "medium",
+      "note": "空泛修饰"
+    },
+    {
+      "pattern": "多维度",
+      "replacements": [
+        "多个层面",
+        "多角度"
+      ],
+      "severity": "medium",
+      "note": "空泛修饰"
+    },
+    {
+      "pattern": "显著提升",
+      "replacements": [
+        "明显提高",
+        "明显增加"
+      ],
+      "severity": "medium",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "极大提升",
+      "replacements": [
+        "明显提高",
+        "大幅提高"
+      ],
+      "severity": "high",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "有效促进",
+      "replacements": [
+        "有助于推动",
+        "推动了"
+      ],
+      "severity": "high",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "有效提升",
+      "replacements": [
+        "明显提高"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "日益",
+      "replacements": [
+        "日渐",
+        "越来越"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "极大地",
+      "replacements": [
+        "明显",
+        "在很大程度上"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "显著地",
+      "replacements": [
+        "明显地",
+        "较为明显地"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "有效地",
+      "replacements": [
+        "较为有效地",
+        "有效"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "致力于",
+      "replacements": [
+        "聚焦于",
+        "旨在"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "着眼于",
+      "replacements": [
+        "关注",
+        "聚焦"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "聚焦于",
+      "replacements": [
+        "集中于",
+        "关注"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "赋能",
+      "replacements": [
+        "支持",
+        "支撑"
+      ],
+      "severity": "high",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "助力",
+      "replacements": [
+        "帮助",
+        "推动"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "抓手",
+      "replacements": [
+        "切入点",
+        "着力点"
+      ],
+      "severity": "high",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "闭环",
+      "replacements": [
+        "完整流程",
+        "完整环节"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "链路",
+      "replacements": [
+        "流程",
+        "环节"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "沉淀",
+      "replacements": [
+        "积累"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "对齐",
+      "replacements": [
+        "统一",
+        "保持一致"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "颗粒度",
+      "replacements": [
+        "细致程度",
+        "精细程度"
+      ],
+      "severity": "high",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "底层逻辑",
+      "replacements": [
+        "内在机理",
+        "根本原因"
+      ],
+      "severity": "high",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "顶层设计",
+      "replacements": [
+        "整体规划",
+        "总体安排"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "组合拳",
+      "replacements": [
+        "组合措施",
+        "配套措施"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "方法论",
+      "replacements": [
+        "方法体系",
+        "研究方法"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "范式",
+      "replacements": [
+        "模式",
+        "研究范式"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "维度",
+      "replacements": [
+        "层面",
+        "角度"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "降本增效",
+      "replacements": [
+        "降低成本、提高效率"
+      ],
+      "severity": "high",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "提质增效",
+      "replacements": [
+        "提高质量与效率"
+      ],
+      "severity": "high",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "数字化转型",
+      "replacements": [
+        "数字化改造"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "智能化升级",
+      "replacements": [
+        "智能化改造"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "全链路",
+      "replacements": [
+        "全流程"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "端到端",
+      "replacements": [
+        "全过程"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "一站式",
+      "replacements": [
+        "一体化"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "立体化",
+      "replacements": [
+        "多层次"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "精细化",
+      "replacements": [
+        "细致化"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "体系化",
+      "replacements": [
+        "系统化"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "常态化",
+      "replacements": [
+        "长期化"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "长效化",
+      "replacements": [
+        "长期有效"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "场景化",
+      "replacements": [
+        "结合场景"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "高质量发展",
+      "replacements": [
+        "持续发展",
+        "质量提升"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "核心竞争力",
+      "replacements": [
+        "核心优势"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "价值主张",
+      "replacements": [
+        "核心价值"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "用户痛点",
+      "replacements": [
+        "关键问题"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "最佳实践",
+      "replacements": [
+        "典型做法",
+        "常见做法"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "关键节点",
+      "replacements": [
+        "关键阶段"
+      ],
+      "severity": "medium",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "关键时期",
+      "replacements": [
+        "重要阶段"
+      ],
+      "severity": "medium",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "新篇章",
+      "replacements": [
+        "新阶段"
+      ],
+      "severity": "medium",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "新征程",
+      "replacements": [
+        "新阶段"
+      ],
+      "severity": "medium",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "新格局",
+      "replacements": [
+        "新局面"
+      ],
+      "severity": "medium",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "战略意义",
+      "replacements": [
+        "战略价值"
+      ],
+      "severity": "medium",
+      "note": "抽象大词"
+    },
+    {
+      "pattern": "亟需解决",
+      "replacements": [
+        "亟待解决",
+        "需要解决"
+      ],
+      "severity": "medium",
+      "note": "空泛表述"
+    },
+    {
+      "pattern": "提出了更高要求",
+      "replacements": [
+        "要求更高",
+        "提出了新的要求"
+      ],
+      "severity": "medium",
+      "note": "空泛表述"
+    },
+    {
+      "pattern": "日益凸显",
+      "replacements": [
+        "日趋明显",
+        "逐渐显现"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "一系列新的挑战",
+      "replacements": [
+        "新的挑战",
+        "若干新问题"
+      ],
+      "severity": "medium",
+      "note": "空泛表述"
+    },
+    {
+      "pattern": "扮演着至关重要的角色",
+      "replacements": [
+        "起着关键作用"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "扮演着重要角色",
+      "replacements": [
+        "起着重要作用"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "起到了至关重要的作用",
+      "replacements": [
+        "起到了关键作用"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有不可替代的作用",
+      "replacements": [
+        "具有独特作用"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "形成了良性循环",
+      "replacements": [
+        "形成了正向循环"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "营造了良好的氛围",
+      "replacements": [
+        "营造了有利氛围"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "从本质上讲",
+      "replacements": [
+        "本质上",
+        "就其本质而言"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "归根结底",
+      "replacements": [
+        "总体而言",
+        "从根本上说"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "究其原因",
+      "replacements": [
+        "其原因在于",
+        "原因主要在于"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "客观地说",
+      "replacements": [
+        "客观而言"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "从某种意义上讲",
+      "replacements": [
+        "在某种意义上"
+      ],
+      "severity": "high",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "显而易见的是",
+      "replacements": [
+        "可以观察到",
+        "较为明显的是"
+      ],
+      "severity": "medium",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "毋庸置疑的是",
+      "replacements": [
+        "可以确定",
+        "较为确定的是"
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "众所周知的是",
+      "replacements": [
+        "已有共识是",
+        "一般认为"
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "研究表明",
+      "replacements": [
+        "研究显示",
+        "相关文献指出"
+      ],
+      "severity": "medium",
+      "replace_mode": "first",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "数据显示",
+      "replacements": [
+        "统计结果显示",
+        "从数据看"
+      ],
+      "severity": "medium",
+      "replace_mode": "first",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "学者指出",
+      "replacements": [
+        "有学者提出",
+        "部分研究认为"
+      ],
+      "severity": "medium",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "专家认为",
+      "replacements": [
+        "有专家提出",
+        "部分专家认为"
+      ],
+      "severity": "medium",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "业内人士表示",
+      "replacements": [
+        "有从业者提到",
+        "部分从业者认为"
+      ],
+      "severity": "medium",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "普遍认为",
+      "replacements": [
+        "多数研究认为",
+        "通常认为"
+      ],
+      "severity": "medium",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "众所周知",
+      "replacements": [
+        "已有共识是",
+        "一般认为"
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "毋庸置疑",
+      "replacements": [
+        "可以确定",
+        "较为确定"
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "显而易见",
+      "replacements": [
+        "较为明显",
+        "可以观察到"
+      ],
+      "severity": "medium",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "本文旨在",
+      "replacements": [
+        "本文的目标是",
+        "本文试图"
+      ],
+      "severity": "high",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "本研究旨在",
+      "replacements": [
+        "本研究试图",
+        "本研究关注"
+      ],
+      "severity": "high",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "本文认为",
+      "replacements": [
+        "本文的判断是",
+        "笔者倾向于认为"
+      ],
+      "severity": "medium",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "本研究认为",
+      "replacements": [
+        "本研究的判断是",
+        "笔者认为"
+      ],
+      "severity": "medium",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "进行了深入探讨",
+      "replacements": [
+        "做了讨论",
+        "展开了分析"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "开展了系统研究",
+      "replacements": [
+        "做了系统分析"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "构建了理论框架",
+      "replacements": [
+        "搭建了分析框架"
+      ],
+      "severity": "medium",
+      "note": "空泛动词"
+    },
+    {
+      "pattern": "具有重要的现实意义",
+      "replacements": [
+        "对现实有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有重要的理论价值",
+      "replacements": [
+        "在理论上有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "丰富了相关理论",
+      "replacements": [
+        "补充了相关讨论"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "提供了理论依据",
+      "replacements": [
+        "提供了参考"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "取得了丰硕成果",
+      "replacements": [
+        "积累了不少成果"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "填补了研究空白",
+      "replacements": [
+        "补充了相关研究"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "鲜有研究",
+      "replacements": [
+        "相关研究较少"
+      ],
+      "severity": "medium",
+      "note": "综述套话"
+    },
+    {
+      "pattern": "研究相对较少",
+      "replacements": [
+        "相关研究仍不充分"
+      ],
+      "severity": "medium",
+      "note": "综述套话"
+    },
+    {
+      "pattern": "国内外学者",
+      "replacements": [
+        "已有研究",
+        "相关学者"
+      ],
+      "severity": "medium",
+      "note": "综述套话"
+    },
+    {
+      "pattern": "大量研究",
+      "replacements": [
+        "较多研究",
+        "一系列研究"
+      ],
+      "severity": "low",
+      "note": "综述套话"
+    },
+    {
+      "pattern": "总体来看",
+      "replacements": [
+        "整体来看"
+      ],
+      "severity": "low",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "综上所述可以发现",
+      "replacements": [
+        "由上述分析可见"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "本文的研究结论如下",
+      "replacements": [
+        "本文得到以下结论"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "有待进一步研究",
+      "replacements": [
+        "仍需进一步讨论",
+        "尚需后续研究"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "具有一定的局限性",
+      "replacements": [
+        "存在一定局限"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "展望未来",
+      "replacements": [
+        "就后续研究而言",
+        "从后续研究看"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "未来研究可以",
+      "replacements": [
+        "后续研究可从",
+        "今后可进一步"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "呈显著正相关",
+      "replacements": [
+        "表现出明显的正相关"
+      ],
+      "severity": "medium",
+      "note": "结果套话"
+    },
+    {
+      "pattern": "呈显著负相关",
+      "replacements": [
+        "表现出明显的负相关"
+      ],
+      "severity": "medium",
+      "note": "结果套话"
+    },
+    {
+      "pattern": "显著差异",
+      "replacements": [
+        "明显差异"
+      ],
+      "severity": "medium",
+      "note": "结果套话"
+    },
+    {
+      "pattern": "显著提高",
+      "replacements": [
+        "明显提高"
+      ],
+      "severity": "medium",
+      "note": "结果套话"
+    },
+    {
+      "pattern": "显著降低",
+      "replacements": [
+        "明显降低"
+      ],
+      "severity": "medium",
+      "note": "结果套话"
+    },
+    {
+      "pattern": "已有研究表明",
+      "replacements": [
+        "已有研究显示"
+      ],
+      "severity": "medium",
+      "note": "模糊归因"
+    },
+    {
+      "pattern": "具有一定的理论价值和实践意义",
+      "replacements": [
+        "在理论和实践上都有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有一定的理论意义",
+      "replacements": [
+        "在理论上有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "具有一定的实践意义",
+      "replacements": [
+        "对实践有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "丰富了相关研究",
+      "replacements": [
+        "补充了相关讨论"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "拓展了研究视野",
+      "replacements": [
+        "拓宽了分析角度"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "弥补了研究不足",
+      "replacements": [
+        "补充了相关讨论"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "尚未形成统一定论",
+      "replacements": [
+        "仍存在不同看法"
+      ],
+      "severity": "medium",
+      "note": "综述套话"
+    },
+    {
+      "pattern": "仍存在较大争议",
+      "replacements": [
+        "仍有不同看法"
+      ],
+      "severity": "medium",
+      "note": "综述套话"
+    },
+    {
+      "pattern": "有待进一步检验",
+      "replacements": [
+        "仍需进一步验证"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "有待进一步探讨",
+      "replacements": [
+        "仍需进一步讨论"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "样本量有限",
+      "replacements": [
+        "样本规模有限"
+      ],
+      "severity": "low",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "研究结论具有一定的局限性",
+      "replacements": [
+        "研究结论存在一定局限"
+      ],
+      "severity": "medium",
+      "note": "结论套话"
+    },
+    {
+      "pattern": "本文的创新点在于",
+      "replacements": [
+        "本文的创新之处是"
+      ],
+      "severity": "medium",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "本文的主要贡献在于",
+      "replacements": [
+        "本文的贡献主要有"
+      ],
+      "severity": "medium",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "与已有研究相比",
+      "replacements": [
+        "相较已有研究"
+      ],
+      "severity": "low",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "不同于以往研究",
+      "replacements": [
+        "与以往研究不同"
+      ],
+      "severity": "low",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "基于上述分析",
+      "replacements": [
+        "由上述分析"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    }
+  ]
+}

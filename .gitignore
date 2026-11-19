@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+.venv/
+
+# build output
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+
+# local data and secrets
+data/app.db
+data/app.db-journal
+data/secret.key
+data/models/
+.env
+
+# temp files
+.monkeycode-tmp-files/
+*.log
+.DS_Store
+npm-debug.log*

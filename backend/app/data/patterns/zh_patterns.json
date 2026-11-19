@@ -1,0 +1,1229 @@
+{
+  "scope": "general",
+  "rules": [
+    {
+      "pattern": "^首先[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "提纲式开头"
+    },
+    {
+      "pattern": "^其次[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "提纲式开头"
+    },
+    {
+      "pattern": "^再次[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "提纲式开头"
+    },
+    {
+      "pattern": "^最后[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "提纲式开头"
+    },
+    {
+      "pattern": "^此外[，,、]\\s*",
+      "replacements": [
+        "另外，"
+      ],
+      "severity": "medium",
+      "note": "书面连接词"
+    },
+    {
+      "pattern": "^与此同时[，,、]\\s*",
+      "replacements": [
+        "另外，"
+      ],
+      "severity": "medium",
+      "note": "书面连接词"
+    },
+    {
+      "pattern": "^综上所述[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "^总而言之[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "^总的来说[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "^由此可见[，,、]\\s*",
+      "replacements": [
+        "所以，"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "^值得注意的是[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 过渡句"
+    },
+    {
+      "pattern": "^需要指出的是[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^需要强调的是[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^必须指出的是[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^需要说明的是[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^不难看出[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^换言之[，,、]\\s*",
+      "replacements": [
+        "也就是说，"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "^换句话说[，,、]\\s*",
+      "replacements": [
+        "也就是说，"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "^简而言之[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "^具体而言[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "^一方面[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "对称结构"
+    },
+    {
+      "pattern": "^另一方面[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "对称结构"
+    },
+    {
+      "pattern": "^事实上[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "口头过渡"
+    },
+    {
+      "pattern": "^实际上[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "口头过渡"
+    },
+    {
+      "pattern": "^不可否认的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "^毋庸置疑[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "^众所周知[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "^显而易见[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "^从某种意义上说[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "^从长远来看[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "^整体来看[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模糊限定"
+    },
+    {
+      "pattern": "^应当看到[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^由此可以看出[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "^我们可以看到[，,、]\\s*",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板句"
+    },
+    {
+      "pattern": "不可否认的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "众所周知[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "毋庸置疑[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "显而易见[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "AI 高频"
+    },
+    {
+      "pattern": "综上所述[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "总而言之[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "总的来说[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "由此可见[，,]?",
+      "replacements": [
+        "所以，"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "值得注意的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "AI 过渡句"
+    },
+    {
+      "pattern": "需要指出的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "需要强调的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "必须指出的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "不难看出[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "换言之[，,]?",
+      "replacements": [
+        "也就是说，"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "换句话说[，,]?",
+      "replacements": [
+        "也就是说，"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "简而言之[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "具体而言[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "值得一提的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "AI 过渡句"
+    },
+    {
+      "pattern": "^在当今(社会|时代|数字化时代)[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "^随着(科技|技术|社会|经济)的(飞速|快速|迅猛)?发展[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "^(另外|同时|此外)[，,]\\s*(所以|因此|可见)[，,]",
+      "replacements": [
+        "\\2，"
+      ],
+      "severity": "medium",
+      "note": "连接词叠加"
+    },
+    {
+      "pattern": "^(所以|因此|可见)[，,]\\s*(所以|因此|可见)[，,]",
+      "replacements": [
+        "\\2，"
+      ],
+      "severity": "medium",
+      "note": "连接词叠加"
+    },
+    {
+      "pattern": "随着([^，。；]{1,30})的(快速|飞速|不断|持续)?(发展|推进|深入|普及)",
+      "replacements": [
+        "\\1\\2\\3之后"
+      ],
+      "severity": "high",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "在([^，。；]{1,30})的(大)?背景下",
+      "replacements": [
+        "在\\1之下"
+      ],
+      "severity": "medium",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "在([^，。；]{1,20})的同时[，,]",
+      "replacements": [
+        "\\1时，"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "在([^，。；]{1,20})方面",
+      "replacements": [
+        "在\\1上"
+      ],
+      "severity": "low",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "对于([^，。；]{1,20})而言",
+      "replacements": [
+        "对\\1来说"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "由于([^，。；]{1,20})的原因",
+      "replacements": [
+        "因为\\1"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "由于([^，。；]{1,20})的事实",
+      "replacements": [
+        "因为\\1"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "为了([^，。；]{1,20})的目的",
+      "replacements": [
+        "为了\\1"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "在([^，。；]{1,20})的情况下",
+      "replacements": [
+        "如果\\1"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "在([^，。；]{1,20})的过程中",
+      "replacements": [
+        "\\1时"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "具有([^，。；]{1,15})的能力",
+      "replacements": [
+        "能\\1"
+      ],
+      "severity": "medium",
+      "note": "冗余表达"
+    },
+    {
+      "pattern": "对([^，。；]{1,20})进行([^，。；的]{1,10})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\2\\1"
+      ],
+      "severity": "high",
+      "note": "名词化动词"
+    },
+    {
+      "pattern": "对([^，。；]{1,20})加以([^，。；的]{1,10})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\2\\1"
+      ],
+      "severity": "high",
+      "note": "名词化动词"
+    },
+    {
+      "pattern": "进行(?!中|了|着|过|曲|时|性)([^，。；的]{1,8})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化动词"
+    },
+    {
+      "pattern": "做出([^，。；的]{1,8})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化动词"
+    },
+    {
+      "pattern": "给予([^，。；的]{1,8})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化动词"
+    },
+    {
+      "pattern": "开展([^，。；的]{1,8})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化动词"
+    },
+    {
+      "pattern": "为([^，。；]{1,20})提供了([^，。；]{1,20})",
+      "replacements": [
+        "给\\1提供了\\2"
+      ],
+      "severity": "medium",
+      "note": "书面句式"
+    },
+    {
+      "pattern": "为([^，。；]{1,20})提供([^，。；]{1,20})",
+      "replacements": [
+        "给\\1提供\\2"
+      ],
+      "severity": "medium",
+      "note": "书面句式"
+    },
+    {
+      "pattern": "为([^，。；]{1,20})注入了([^，。；]{1,20})",
+      "replacements": [
+        "给\\1带来了\\2"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "成为([^，。；]{1,20})的重要(组成部分|载体|支撑)",
+      "replacements": [
+        "成了\\1的\\2"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "标志着([^，。；]{1,20})的(重要|关键)(时刻|节点|里程碑)",
+      "replacements": [
+        "是\\1的\\3"
+      ],
+      "severity": "high",
+      "note": "拔高意义"
+    },
+    {
+      "pattern": "不仅([^，。；]{1,40})[，,]\\s*也",
+      "replacements": [
+        "\\1，也"
+      ],
+      "severity": "medium",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "不仅([^，。；]{1,40})[，,]\\s*而且",
+      "replacements": [
+        "\\1，并且"
+      ],
+      "severity": "medium",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "不仅([^，。；]{1,40})[，,]\\s*还",
+      "replacements": [
+        "\\1，也"
+      ],
+      "severity": "medium",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "既([^，。；]{1,30})[，,]\\s*又",
+      "replacements": [
+        "\\1，同时也"
+      ],
+      "severity": "medium",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "一方面([^，。；]{1,40})[，,]\\s*另一方面",
+      "replacements": [
+        "\\1。换个角度看，"
+      ],
+      "severity": "high",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "不是([^，。；]{1,30})[，,]\\s*而是",
+      "replacements": [
+        "与其说\\1，不如说"
+      ],
+      "severity": "medium",
+      "note": "否定式排比"
+    },
+    {
+      "pattern": "并非([^，。；]{1,30})[，,]\\s*而是",
+      "replacements": [
+        "与其说\\1，不如说"
+      ],
+      "severity": "medium",
+      "note": "否定式排比"
+    },
+    {
+      "pattern": "不只是([^，。；]{1,30})[，,]\\s*更是",
+      "replacements": [
+        "\\1，而且"
+      ],
+      "severity": "high",
+      "note": "否定式排比"
+    },
+    {
+      "pattern": "不仅是([^，。；]{1,30})[，,]\\s*更是",
+      "replacements": [
+        "\\1，而且"
+      ],
+      "severity": "high",
+      "note": "否定式排比"
+    },
+    {
+      "pattern": "无论([^，。；]{1,20})[，,]\\s*还是([^，。；]{1,20})[，,]\\s*都",
+      "replacements": [
+        "\\1也好，\\2也好，都"
+      ],
+      "severity": "medium",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "(希望|但愿)(这|本文|以上内容)?(对|能对)(您|你)(有所)?帮助[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "聊天机器人痕迹"
+    },
+    {
+      "pattern": "如有(任何)?(疑问|问题)[，,]?(请)?(随时)?(告知|联系我|提出)[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "聊天机器人痕迹"
+    },
+    {
+      "pattern": "当然(可以|没问题)[！!，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "聊天机器人痕迹"
+    },
+    {
+      "pattern": "很高兴(为您|为你)(服务|解答)[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "聊天机器人痕迹"
+    },
+    {
+      "pattern": "作为(一个|一名)?(AI|人工智能|语言模型)[，,]?[^。！？]*[。！？]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "聊天机器人痕迹"
+    },
+    {
+      "pattern": "(截至|截止)(我)?(的)?(知识|训练)(截止|更新)[^。！？]*[。！？]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "知识截止免责"
+    },
+    {
+      "pattern": "由于篇幅(限制|所限)[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "免责声明"
+    },
+    {
+      "pattern": "本文(仅|只)供参考[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "免责声明"
+    },
+    {
+      "pattern": "让我们(共同)?(拭目以待|期待)[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "通用积极结论"
+    },
+    {
+      "pattern": "在这个时间点",
+      "replacements": [
+        "现在"
+      ],
+      "severity": "medium",
+      "note": "填充短语"
+    },
+    {
+      "pattern": "为了实现这一目标",
+      "replacements": [
+        "为此"
+      ],
+      "severity": "medium",
+      "note": "填充短语"
+    },
+    {
+      "pattern": "^(综上所述|总而言之|总的来说)[，,][^。！？]{0,30}(具有重要意义|意义重大|至关重要|十分重要|非常重要)[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "空洞总结句"
+    },
+    {
+      "pattern": "相信在不久的将来[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "通用积极结论"
+    },
+    {
+      "pattern": "(未来可期|大有可为)[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "通用积极结论"
+    },
+    {
+      "pattern": "所谓的?[“\"]([^“”\"]{1,15})[”\"]",
+      "replacements": [
+        "\\1"
+      ],
+      "severity": "medium",
+      "note": "引号强调"
+    },
+    {
+      "pattern": "^在当今[^，。]{0,12}(时代|社会)[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "^随着[^，。]{0,15}的(不断|快速|飞速|迅猛)?(发展|推进|进步)[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "朝着([^，。；]{1,15})方向发展",
+      "replacements": [
+        "朝\\1方向发展"
+      ],
+      "severity": "medium",
+      "note": "模板句式"
+    },
+    {
+      "pattern": "从([^，。；]{1,15})角度来看",
+      "replacements": [
+        "从\\1来看"
+      ],
+      "severity": "low",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "就([^，。；]{1,15})而言",
+      "replacements": [
+        "对\\1来说"
+      ],
+      "severity": "medium",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "激发了([^，。；]{1,10})活力",
+      "replacements": [
+        "让\\1活了起来"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "释放了([^，。；]{1,10})潜能",
+      "replacements": [
+        "把\\1的潜力放了出来"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "为([^，。；]{1,20})创造了([^，。；]{1,10})条件",
+      "replacements": [
+        "给\\1创造了\\2条件"
+      ],
+      "severity": "low",
+      "note": "书面句式"
+    },
+    {
+      "pattern": "为([^，。；]{1,20})奠定了基础",
+      "replacements": [
+        "给\\1打下了基础"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "扮演着([^，。；]{1,10})角色",
+      "replacements": [
+        "起着\\1作用"
+      ],
+      "severity": "medium",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "因为([^，。；]{1,30})[，,]\\s*所以([^，。；]{1,30})",
+      "replacements": [
+        "\\2，因为\\1"
+      ],
+      "severity": "medium",
+      "note": "因果句倒装"
+    },
+    {
+      "pattern": "由于([^，。；]{1,30})[，,]\\s*([^，。；]{1,30})",
+      "replacements": [
+        "\\2，因为\\1"
+      ],
+      "severity": "low",
+      "note": "因果句倒装"
+    },
+    {
+      "pattern": "随着([^，。]{1,30})的(快速|飞速|不断|持续|迅猛)?(发展|推进|深入|普及)",
+      "replacements": [
+        "\\1\\2\\3"
+      ],
+      "severity": "high",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "在([^，。]{1,20})的背景下",
+      "replacements": [
+        "在\\1下"
+      ],
+      "severity": "medium",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "在([^，。]{1,20})的时代",
+      "replacements": [
+        "在\\1时期"
+      ],
+      "severity": "medium",
+      "note": "模板开头"
+    },
+    {
+      "pattern": "本文旨在通过([^，。]{1,20})探讨([^，。]{1,20})",
+      "replacements": [
+        "本文通过\\1讨论\\2"
+      ],
+      "severity": "high",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "本文旨在(研究|分析|探讨|考察|构建|提出)",
+      "replacements": [
+        "本文\\1"
+      ],
+      "severity": "high",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "本文主要研究以下几个方面",
+      "replacements": [
+        "本文主要讨论以下内容"
+      ],
+      "severity": "high",
+      "note": "学术套话"
+    },
+    {
+      "pattern": "从([^，。]{1,15})角度来看",
+      "replacements": [
+        "从\\1来看"
+      ],
+      "severity": "low",
+      "note": "书面套话"
+    },
+    {
+      "pattern": "基于上述分析可知",
+      "replacements": [
+        "由上述分析可见"
+      ],
+      "severity": "high",
+      "note": "模板总结"
+    },
+    {
+      "pattern": "通过研究发现",
+      "replacements": [
+        "研究结果显示"
+      ],
+      "severity": "medium",
+      "note": "结果套话"
+    },
+    {
+      "pattern": "具有重要理论意义和现实意义",
+      "replacements": [
+        "在理论和实践上都有参考价值"
+      ],
+      "severity": "high",
+      "note": "空洞评价"
+    },
+    {
+      "pattern": "为([^，。]{1,20})提供参考",
+      "replacements": [
+        "供\\1参考"
+      ],
+      "severity": "medium",
+      "note": "书面句式"
+    },
+    {
+      "pattern": "这哪是([^，。]{1,20})[，,]这分明是([^，。]{1,20})",
+      "replacements": [
+        "与其说\\1，不如说\\2"
+      ],
+      "severity": "high",
+      "note": "反差句式"
+    },
+    {
+      "pattern": "看似是([^，。]{1,20})[，,]实则是([^，。]{1,20})",
+      "replacements": [
+        "表面上是\\1，实际上是\\2"
+      ],
+      "severity": "high",
+      "note": "反差句式"
+    },
+    {
+      "pattern": "真正的([^，。]{1,20})从来不是([^，。]{1,20})[，,]而是([^，。]{1,20})",
+      "replacements": [
+        "\\1更多体现在\\3"
+      ],
+      "severity": "high",
+      "note": "否定式排比"
+    },
+    {
+      "pattern": "大家都以为是([^，。]{1,20})[，,]殊不知本质却是([^，。]{1,20})",
+      "replacements": [
+        "常被认为是\\1，实际上\\2"
+      ],
+      "severity": "high",
+      "note": "反差句式"
+    },
+    {
+      "pattern": "90%的人都在做错([^，。]{1,20})",
+      "replacements": [
+        "很多人在\\1上存在误区"
+      ],
+      "severity": "medium",
+      "note": "警示句式"
+    },
+    {
+      "pattern": "别再迷信([^，。]{1,20})了",
+      "replacements": [
+        "需要重新看待\\1"
+      ],
+      "severity": "medium",
+      "note": "警示句式"
+    },
+    {
+      "pattern": "你有没有过这样的时刻[：:]([^。！？]{1,40})",
+      "replacements": [
+        "常见的情况是\\1"
+      ],
+      "severity": "medium",
+      "note": "提问钩子"
+    },
+    {
+      "pattern": "不知道你发现没有[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "提问钩子"
+    },
+    {
+      "pattern": "人到了([^，。]{1,10})年纪[，,]?终究会慢慢明白([^。！？]{1,30})",
+      "replacements": [
+        "到了\\1，很多人会意识到\\2"
+      ],
+      "severity": "medium",
+      "note": "共情句式"
+    },
+    {
+      "pattern": "([^，。]{1,15})不仅关乎([^，。]{1,20})[，,]更影响着([^，。]{1,20})",
+      "replacements": [
+        "\\1既涉及\\2，也影响\\3"
+      ],
+      "severity": "medium",
+      "note": "对称句式"
+    },
+    {
+      "pattern": "长远来看[，,]学会([^，。]{1,20})[，,]才是成年人最高级的修行",
+      "replacements": [
+        "长期看，\\1值得重视"
+      ],
+      "severity": "medium",
+      "note": "拔高句式"
+    },
+    {
+      "pattern": "这才是([^，。]{1,20})的底层逻辑",
+      "replacements": [
+        "这是\\1的根本原因"
+      ],
+      "severity": "high",
+      "note": "拔高句式"
+    },
+    {
+      "pattern": "就像([^，。]{1,20})一样",
+      "replacements": [
+        "如同\\1"
+      ],
+      "severity": "low",
+      "note": "比喻模板"
+    },
+    {
+      "pattern": "所谓的?[“\"]([^“”\"]{1,10})[”\"]",
+      "replacements": [
+        "\\1"
+      ],
+      "severity": "medium",
+      "note": "引号强调"
+    },
+    {
+      "pattern": "值得注意的是[，,]?数据显示",
+      "replacements": [
+        "数据显示"
+      ],
+      "severity": "high",
+      "note": "填充短语"
+    },
+    {
+      "pattern": "不难发现[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "模板句"
+    },
+    {
+      "pattern": "可以看出[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "low",
+      "note": "模板句"
+    },
+    {
+      "pattern": "进一步而言[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "除此之外[，,]?",
+      "replacements": [
+        "另外，"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "更为关键的是[，,]?",
+      "replacements": [
+        "更关键的是，"
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "需要注意的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板句"
+    },
+    {
+      "pattern": "需要说明的是[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板句"
+    },
+    {
+      "pattern": "应当看到[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板句"
+    },
+    {
+      "pattern": "必须承认[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板句"
+    },
+    {
+      "pattern": "客观地说[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "客观来讲[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "模板过渡"
+    },
+    {
+      "pattern": "[，,]?\\s*以期为([^，。]{1,20})提供(参考|借鉴|启示)[。！!]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "空洞结尾"
+    }
+  ]
+}
