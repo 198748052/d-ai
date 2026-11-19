@@ -1,0 +1,91 @@
+# User Instruction Memory
+
+This file records user instructions, preferences, and project knowledge for future sessions.
+
+## Format
+
+### User Instruction Entry
+- Date: [YYYY-MM-DD]
+- Context: [scenario]
+- Instructions:
+  - [content]
+
+### Project Knowledge Entry
+- Date: [YYYY-MM-DD]
+- Context: [discovered while doing X]
+- Category: [Operations & Deployment | Build Methods | Testing Methods | Troubleshooting & Debugging | Workflow & Collaboration | Environment Configuration]
+- Instructions:
+  - [content]
+
+## Entries
+
+### 项目目标与迭代方向
+- Date: 2026-11-19
+- Context: 平台定位与后续迭代
+- Instructions:
+  - 目标：降低中文学术论文的 AI 检测率，保持原意、段落数量与顺序、标题和序号不变
+  - 核心路线：规则库覆盖优先 + LLM 受规则约束改写 + 改写后审计
+  - 规则库：持续从公开 AI 特征清单补充，覆盖面优先；多轮删除/替换直到收敛
+  - 写作节奏：句长 CV、连接词密度、信息密度、限定语、句首多样性是主要优化目标
+  - LLM 约束：先扫描本段命中的具体规则，把命中清单写进提示词；按句组分片改写；逐片复检；残留再纠正
+  - 本地模型：当前只做逐句困惑度诊断；下一步用低困惑度句触发定向改写，先与用户检测器的标红段落做相关性验证
+  - 质量红线：数字、引用、术语、公式、标题、序号不动；改写后必须审计；异常或重复结果回退
+  - 迭代方式：用户用实际检测平台复测，把标红句子发回，按具体句式补规则或调提示词
+  - 待办：GitHub 推送（需要仓库 URL）；检测器反馈闭环；低困惑度句定向改写
+
+### 项目运行方式
+- Date: 2026-11-19
+- Context: 降 AI 味改写平台开发
+- Category: Build Methods / Operations
+- Instructions:
+  - 后端：`cd /workspace/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+  - 前端：`cd /workspace/frontend && npm run dev`（端口 3000）
+  - 一键启动：`/workspace/start.sh`
+  - 前端 `next.config.js` 把 `/api/*` 反代到 `http://127.0.0.1:8000`
+  - 预览地址：`https://3000-8cc70a671b4b3627.monkeycode-ai.online`
+  - Next dev 首次访问新页面编译可能 1-2 分钟，属于正常现象
+
+### 本地模型
+- Date: 2026-11-19
+- Category: Environment Configuration / Troubleshooting
+- Instructions:
+  - HuggingFace 不可达；`hf-mirror.com` 会 308 跳回 `huggingface.co`，实际不可用
+  - 模型下载走 ModelScope 文件接口：`https://www.modelscope.cn/api/v1/models/{model}/repo?Revision=master&FilePath={file}`
+  - 当前使用 `Qwen/Qwen2.5-1.5B`，float16，缓存目录 `/workspace/data/models/Qwen__Qwen2.5-1.5B`（约 3.1GB）
+  - 旧模型 `Qwen/Qwen2.5-0.5B` 仍在 `/workspace/data/models/Qwen__Qwen2.5-0.5B`（约 954MB）
+  - 后端启动时若 `local_enabled=true` 会自动从缓存加载，不会重复下载
+  - 1.5B 从缓存加载约 1-2 分钟；CPU 推理较慢，加载后剩余内存约 500MB
+  - 逐句困惑度接口：`POST /api/settings/llm/perplexity`
+
+### LLM 与任务
+- Date: 2026-11-19
+- Category: Troubleshooting / Environment Configuration
+- Instructions:
+  - LLM 设置：`/api/settings/llm`，当前网关 `https://wbapi.topsygf.cn/v1`，模型 `deepseek-v4.1-flash-sg`
+  - API Key 用 Fernet 加密存 `data/app.db`，密钥文件 `data/secret.key`
+  - 当前网关不返回 `logprobs`，无法直接用 API 算困惑度，所以用本地模型算
+  - 任务持久化在 SQLite `rewritejob` 表；服务重启会把 `running` 标记为 `interrupted`
+  - SQLModel 要求时间字段带时区：必须用 `datetime.now(timezone.utc)`；`datetime.utcnow()` 会导致插入失败
+  - 改写任务走 `POST /api/rewrite/jobs`，前端轮询 `GET /api/rewrite/jobs/{job_id}`
+  - LLM 偶发返回空内容，已加 3 次重试；异常长度或重复结果会被清理或回退
+
+### Git 与推送
+- Date: 2026-11-19
+- Category: Workflow & Collaboration
+- Instructions:
+  - `/workspace` 已 `git init`，首次提交 `8f3bc4a`
+  - `.gitignore` 已排除 `data/models/`、`node_modules`、`.next`、`data/app.db`、`data/secret.key`
+  - 当前没有 remote；平台凭据助手 `/app/agent/bin/agent git-credential-helper` 对任意 host 返回占位凭据
+  - 推送需要用户提供仓库 URL，然后 `git remote add origin <url>` 并 `git push -u origin main`
+
+### 用户偏好
+- Date: 2026-11-19
+- Context: 平台需求与多轮反馈
+- Instructions:
+  - 用中文回复
+  - 平台聚焦学术论文降 AI 率，只保留「学术论文」一个预设
+  - 改写固定「规则 + LLM 混合」；没有 LLM 配置时直接报错，不降级
+  - 保持段落数量、顺序、标题和序号；保护数字、引用、术语、公式
+  - 避免过度润色和过于工整的短句；要长短句交错、允许适度冗余和限定语
+  - 改写后必须做 AI 特征审计；任务记录要能复制、暂停/继续、支持移动端
+  - 本地模型文件不能因重启丢失，必须自动从缓存加载
