@@ -75,8 +75,10 @@ This file records user instructions, preferences, and project knowledge for futu
 - Instructions:
   - `/workspace` 已 `git init`，首次提交 `8f3bc4a`
   - `.gitignore` 已排除 `data/models/`、`node_modules`、`.next`、`data/app.db`、`data/secret.key`
-  - 当前没有 remote；平台凭据助手 `/app/agent/bin/agent git-credential-helper` 对任意 host 返回占位凭据
-  - 推送需要用户提供仓库 URL，然后 `git remote add origin <url>` 并 `git push -u origin main`
+  - 平台通过 `GIT_CONFIG_*` 注入凭据助手 `/app/agent/bin/agent git-credential-helper`，返回的 `ghs_` 令牌是 GitHub App 安装令牌，可直接用 git 推送
+  - 已绑定仓库 `https://github.com/198748052/d-ai.git`，remote 名为 origin，`main` 已跟踪 `origin/main`
+  - 令牌可访问该账号下 12 个仓库，可用 `curl -H "Authorization: Bearer $T" https://api.github.com/installation/repositories` 列出
+  - 推送流程：`git add .` → `git commit` → `git push origin main`
 
 ### 用户偏好
 - Date: 2026-11-19
