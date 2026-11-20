@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from ..db.database import get_session
+from ..deps import require_admin
 from ..models.models import Preset
 from ..schemas import PresetIn, PresetOut
 
@@ -50,7 +51,11 @@ def list_presets(session: Session = Depends(get_session)):
 
 
 @router.post("", response_model=PresetOut)
-def create_preset(payload: PresetIn, session: Session = Depends(get_session)):
+def create_preset(
+    payload: PresetIn,
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     raise HTTPException(status_code=400, detail="系统只维护「学术论文」预设，请直接编辑该预设")
     row = Preset(
         name=payload.name.strip(),
@@ -76,7 +81,12 @@ def create_preset(payload: PresetIn, session: Session = Depends(get_session)):
 
 
 @router.put("/{preset_id}", response_model=PresetOut)
-def update_preset(preset_id: int, payload: PresetIn, session: Session = Depends(get_session)):
+def update_preset(
+    preset_id: int,
+    payload: PresetIn,
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     row = session.get(Preset, preset_id)
     if not row:
         raise HTTPException(status_code=404, detail="预设不存在")
@@ -101,5 +111,9 @@ def update_preset(preset_id: int, payload: PresetIn, session: Session = Depends(
 
 
 @router.delete("/{preset_id}")
-def delete_preset(preset_id: int, session: Session = Depends(get_session)):
+def delete_preset(
+    preset_id: int,
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     raise HTTPException(status_code=400, detail="「学术论文」预设不可删除")

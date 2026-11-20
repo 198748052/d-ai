@@ -85,6 +85,18 @@ This file records user instructions, preferences, and project knowledge for futu
   - 令牌可访问该账号下 12 个仓库，可用 `curl -H "Authorization: Bearer $T" https://api.github.com/installation/repositories` 列出
   - 推送流程：`git add .` → `git commit` → `git push origin main`
 
+### C 端账号与计费
+- Date: 2026-11-20
+- Category: Operations & Deployment / Workflow
+- Instructions:
+  - 首个注册用户自动成为管理员；管理员可见运营后台、规则库、预设、LLM 设置
+  - 注册赠送 100 字；按提交正文的非空白字符数扣费，任务在产出任何段落前失败会自动退款
+  - 兑换码由管理员生成，用户在我页面兑换；管理员可在 /admin 直接加/减额度
+  - 接口分组：`/api/auth/*` 认证、`/api/credits/*` 余额与兑换、`/api/admin/*` 运营
+  - 当前测试管理员账号 `admin@example.com`，密码需用户自行修改；不要再把密码写入仓库
+  - 任务记录按 `rewrite_job.user_id` 隔离，历史无归属任务仅管理员可见
+  - 设置页 `/settings/llm`、规则库写入、预设写入、踩坑记录删除均要求管理员
+
 ### 用户偏好
 - Date: 2026-11-19
 - Context: 平台需求与多轮反馈

@@ -38,6 +38,45 @@ class LLMSetting(SQLModel, table=True):
     ppl_severe: float = 25.0
 
 
+class User(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(index=True, unique=True)
+    password_hash: str = ""
+    nickname: str = ""
+    credits: int = 0
+    is_admin: bool = False
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_login_at: Optional[datetime] = None
+
+
+class AuthSession(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True)
+    token_hash: str = Field(index=True, unique=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class CreditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(index=True)
+    delta: int = 0
+    reason: str = ""
+    balance_after: int = 0
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class RedeemCode(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    code: str = Field(index=True, unique=True)
+    credits: int = 0
+    max_uses: int = 1
+    used_count: int = 0
+    expires_at: Optional[datetime] = None
+    created_by: Optional[int] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
 class RewriteLesson(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -73,6 +112,7 @@ class Preset(SQLModel, table=True):
 
 class RewriteJob(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: Optional[int] = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     mode: str = "hybrid"

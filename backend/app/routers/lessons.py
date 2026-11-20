@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session, select
 
 from ..db.database import get_session
+from ..deps import require_admin
 from ..models.models import RewriteLesson
 from ..services.rewriter.lessons import list_lessons
 
@@ -47,7 +48,7 @@ def count_lessons(style: str | None = None):
 
 
 @router.delete("/{lesson_id}")
-def delete_lesson(lesson_id: int):
+def delete_lesson(lesson_id: int, _: object = Depends(require_admin)):
     from ..db.database import engine
 
     with Session(engine) as session:

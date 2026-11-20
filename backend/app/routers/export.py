@@ -3,9 +3,10 @@ from __future__ import annotations
 from io import BytesIO
 from urllib.parse import quote
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import Response
 
+from ..deps import require_user
 from ..schemas import ExportRequest
 from ..services.segmenter import split_paragraphs
 
@@ -19,7 +20,7 @@ MEDIA_TYPES = {
 
 
 @router.post("/export")
-def export_document(payload: ExportRequest):
+def export_document(payload: ExportRequest, _: object = Depends(require_user)):
     fmt = payload.format
     filename = payload.filename or "rewritten"
 

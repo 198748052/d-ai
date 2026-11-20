@@ -22,6 +22,8 @@ class Job:
     finished_at: float | None = None
     task: object | None = None
     db_id: int | None = None
+    user_id: int | None = None
+    charged: int = 0
     pause_event: asyncio.Event = field(default_factory=asyncio.Event)
 
 

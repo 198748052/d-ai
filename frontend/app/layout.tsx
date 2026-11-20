@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AuthProvider } from "@/components/AuthContext";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
@@ -15,8 +16,10 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body>
-        <Nav />
-        <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        <AuthProvider>
+          <Nav />
+          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+        </AuthProvider>
       </body>
     </html>
   );

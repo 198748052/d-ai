@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/api";
+import { useAuth } from "@/components/AuthContext";
 import type { JobDetail, JobSummary } from "@/lib/types";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,6 +31,7 @@ function formatTime(value: string): string {
 }
 
 export default function HistoryPage() {
+  const { user, loading: authLoading } = useAuth();
   const [jobs, setJobs] = useState<JobSummary[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [detail, setDetail] = useState<JobDetail | null>(null);
@@ -56,8 +59,8 @@ export default function HistoryPage() {
   }, []);
 
   useEffect(() => {
-    loadJobs();
-  }, [loadJobs]);
+    if (user) loadJobs();
+  }, [user, loadJobs]);
 
   useEffect(() => {
     if (!jobs.some((job) => job.status === "running")) return;

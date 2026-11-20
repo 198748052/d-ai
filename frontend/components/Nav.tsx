@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthContext";
 
-const NAV_ITEMS = [
+const PUBLIC_ITEMS = [
   { href: "/", label: "改写工作台" },
   { href: "/history", label: "任务记录" },
+  { href: "/account", label: "我的额度" },
+];
+
+const ADMIN_ITEMS = [
+  { href: "/admin", label: "运营后台" },
   { href: "/presets", label: "改写预设" },
   { href: "/features", label: "规则库" },
   { href: "/settings/llm", label: "LLM 设置" },
@@ -13,6 +19,14 @@ const NAV_ITEMS = [
 
 export default function Nav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading, logout } = useAuth();
+  const items = user?.is_admin ? [...PUBLIC_ITEMS, ...ADMIN_ITEMS] : PUBLIC_ITEMS;
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
 
   return (
     <header className="sticky top-0 z-30 border-b border-ink-200 bg-white/90 backdrop-blur">
@@ -26,7 +40,7 @@ export default function Nav() {
           </span>
         </Link>
         <nav className="flex flex-1 items-center gap-1 overflow-x-auto whitespace-nowrap text-sm">
-          {NAV_ITEMS.map((item) => {
+          {items.map((item) => {
             const active =
               item.href === "/"
                 ? pathname === "/"
@@ -46,6 +60,30 @@ export default function Nav() {
             );
           })}
         </nav>
+        {loading ? null : user ? (
+          <div className="flex shrink-0 items-center gap-2 text-xs">
+            <span className="hidden rounded-md bg-ink-100 px-2 py-1 text-ink-700 sm:inline">
+              余额 {user.credits} 字
+            </span>
+            <span className="hidden max-w-[160px] truncate text-ink-500 md:inline">
+              {user.nickname || user.email}
+            </span>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-md px-2 py-1 text-ink-600 hover:bg-ink-100"
+            >
+              退出
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="shrink-0 rounded-md bg-accent-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-700"
+          >
+            登录 / 注册
+          </Link>
+        )}
       </div>
     </header>
   );

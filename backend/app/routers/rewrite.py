@@ -9,7 +9,9 @@ from fastapi.responses import StreamingResponse
 from sqlmodel import Session, select
 
 from ..db.database import engine, get_session
-from ..models.models import LLMSetting, RewriteJob
+from ..deps import require_user
+from ..models.models import LLMSetting, RewriteJob, User
+from ..services.credits import InsufficientCredits, billable_chars, charge, grant
 from ..schemas import AuditRequest, AuditResult, RewriteRequest, RewriteResponse
 from ..services.rewriter.audit import audit_text
 from ..services.rewriter.llm_engine import LLMEngine, LLMError
@@ -42,11 +44,12 @@ def _resolve(session: Session, req: RewriteRequest):
     return ctx, rules, llm
 
 
-def _save_job(req: RewriteRequest, ctx, response: RewriteResponse) -> None:
+def _save_job(req: RewriteRequest, ctx, response: RewriteResponse, user_id: int | None = None) -> None:
     try:
         with Session(engine) as session:
             session.add(
                 RewriteJob(
+                    user_id=user_id,
                     mode=ctx.mode,
                     style=ctx.style,
                     strength=ctx.strength,
@@ -68,28 +71,71 @@ def _save_job(req: RewriteRequest, ctx, response: RewriteResponse) -> None:
         pass
 
 
+def _charge(session: Session, user: User, text: str) -> int:
+    needed = billable_chars(text)
+    if needed <= 0:
+        raise HTTPException(status_code=400, detail="没有可计费的正文内容")
+    try:
+        charge(session, user, needed, f"改写 {needed} 字")
+    except InsufficientCredits as exc:
+        raise HTTPException(
+            status_code=402,
+            detail=f"额度不足：本次需要 {exc.required} 字，当前余额 {exc.balance} 字",
+        ) from exc
+    session.commit()
+    return needed
+
+
+def _refund(user_id: int | None, amount: int, reason: str) -> None:
+    if not user_id or amount <= 0:
+        return
+    try:
+        with Session(engine) as session:
+            user = session.get(User, user_id)
+            if user is None:
+                return
+            grant(session, user, amount, reason)
+            session.commit()
+    except Exception:  # noqa: BLE001
+        pass
+
+
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
 @router.post("/rewrite")
-async def rewrite_stream(req: RewriteRequest, session: Session = Depends(get_session)):
+async def rewrite_stream(
+    req: RewriteRequest,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
     ctx, rules, llm = _resolve(session, req)
+    charged = _charge(session, user, req.text)
+    user_id = user.id
+    produced = 0
 
     async def event_gen():
+        nonlocal produced
         queue: asyncio.Queue = asyncio.Queue()
 
         async def emit(result):
+            nonlocal produced
+            produced += 1
             await queue.put(("paragraph", result.model_dump()))
 
         async def runner():
             try:
                 response = await rewrite_document(req.text, ctx, rules, llm, emit)
-                _save_job(req, ctx, response)
+                _save_job(req, ctx, response, user_id)
                 await queue.put(("done", response.model_dump()))
             except LLMError as exc:
+                if produced == 0:
+                    _refund(user_id, charged, "改写失败退款")
                 await queue.put(("error", {"message": str(exc)}))
             except Exception as exc:  # noqa: BLE001
+                if produced == 0:
+                    _refund(user_id, charged, "改写失败退款")
                 await queue.put(("error", {"message": f"改写失败：{exc}"}))
             finally:
                 await queue.put((None, None))
@@ -117,13 +163,19 @@ async def rewrite_stream(req: RewriteRequest, session: Session = Depends(get_ses
 
 
 @router.post("/rewrite/sync", response_model=RewriteResponse)
-async def rewrite_sync(req: RewriteRequest, session: Session = Depends(get_session)):
+async def rewrite_sync(
+    req: RewriteRequest,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
     ctx, rules, llm = _resolve(session, req)
+    charged = _charge(session, user, req.text)
     try:
         response = await rewrite_document(req.text, ctx, rules, llm)
     except LLMError as exc:
+        _refund(user.id, charged, "改写失败退款")
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    _save_job(req, ctx, response)
+    _save_job(req, ctx, response, user.id)
     return response
 
 
@@ -145,10 +197,15 @@ def _update_job_db(db_id: int | None, **fields) -> None:
 
 
 @router.get("/jobs")
-def list_jobs(limit: int = 30, session: Session = Depends(get_session)):
-    rows = session.exec(
-        select(RewriteJob).order_by(RewriteJob.id.desc()).limit(min(limit, 100))
-    ).all()
+def list_jobs(
+    limit: int = 30,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    query = select(RewriteJob).order_by(RewriteJob.id.desc())
+    if not user.is_admin:
+        query = query.where(RewriteJob.user_id == user.id)
+    rows = session.exec(query.limit(min(limit, 100))).all()
     return [
         {
             "id": row.id,
@@ -168,9 +225,13 @@ def list_jobs(limit: int = 30, session: Session = Depends(get_session)):
 
 
 @router.get("/jobs/{job_id}")
-def get_job_detail(job_id: int, session: Session = Depends(get_session)):
+def get_job_detail(
+    job_id: int,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
     row = session.get(RewriteJob, job_id)
-    if row is None:
+    if row is None or (not user.is_admin and row.user_id != user.id):
         raise HTTPException(status_code=404, detail="任务不存在")
     result = None
     if row.result_json:
@@ -204,9 +265,9 @@ def _find_job_by_db_id(db_id: int):
 
 
 @router.post("/jobs/{job_id}/pause")
-def pause_job(job_id: int):
+def pause_job(job_id: int, user: User = Depends(require_user)):
     job = _find_job_by_db_id(job_id)
-    if job is None:
+    if job is None or (not user.is_admin and job.user_id != user.id):
         raise HTTPException(status_code=404, detail="任务不在运行中")
     job.pause_event.clear()
     _update_job_db(job_id, status="paused")
@@ -214,9 +275,9 @@ def pause_job(job_id: int):
 
 
 @router.post("/jobs/{job_id}/resume")
-def resume_job(job_id: int):
+def resume_job(job_id: int, user: User = Depends(require_user)):
     job = _find_job_by_db_id(job_id)
-    if job is None:
+    if job is None or (not user.is_admin and job.user_id != user.id):
         raise HTTPException(status_code=404, detail="任务不在运行中")
     job.pause_event.set()
     _update_job_db(job_id, status="running")
@@ -224,13 +285,17 @@ def resume_job(job_id: int):
 
 
 @router.post("/jobs/{job_id}/rerun")
-async def rerun_job(job_id: int, session: Session = Depends(get_session)):
+async def rerun_job(
+    job_id: int,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
     row = session.get(RewriteJob, job_id)
-    if row is None:
+    if row is None or (not user.is_admin and row.user_id != user.id):
         raise HTTPException(status_code=404, detail="任务不存在")
     if not row.original.strip():
         raise HTTPException(status_code=400, detail="任务没有原文，无法重新执行")
-    return await create_rewrite_job(RewriteRequest(text=row.original), session)
+    return await create_rewrite_job(RewriteRequest(text=row.original), user, session)
 
 
 async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
@@ -280,20 +345,30 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
         job.status = "error"
         job.error = str(exc)
         _update_job_db(job.db_id, status="error", error=job.error)
+        if job.completed == 0:
+            _refund(job.user_id, job.charged, "改写失败退款")
     except Exception as exc:  # noqa: BLE001
         job.status = "error"
         job.error = f"改写失败：{exc}"
         _update_job_db(job.db_id, status="error", error=job.error)
+        if job.completed == 0:
+            _refund(job.user_id, job.charged, "改写失败退款")
 
 
 @router.post("/rewrite/jobs")
-async def create_rewrite_job(req: RewriteRequest, session: Session = Depends(get_session)):
+async def create_rewrite_job(
+    req: RewriteRequest,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
     ctx, rules, llm = _resolve(session, req)
     paragraphs = split_paragraphs(req.text)
     if not paragraphs:
         raise HTTPException(status_code=400, detail="没有解析到任何段落，请检查输入内容")
+    charged = _charge(session, user, req.text)
 
     db_job = RewriteJob(
+        user_id=user.id,
         status="running",
         mode=ctx.mode,
         style=ctx.style,
@@ -309,6 +384,8 @@ async def create_rewrite_job(req: RewriteRequest, session: Session = Depends(get
 
     job = new_job(len(paragraphs))
     job.db_id = db_job.id
+    job.user_id = user.id
+    job.charged = charged
     job.task = asyncio.create_task(_run_job(job, req, ctx, rules, llm))
     return {"job_id": job.id, "db_id": db_job.id, "total": job.total}
 

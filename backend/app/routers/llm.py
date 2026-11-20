@@ -8,6 +8,7 @@ from sqlmodel import Session
 
 from ..core.crypto import decrypt, encrypt, mask_key
 from ..db.database import get_session
+from ..deps import require_admin
 from ..models.models import LLMSetting
 from ..schemas import (
     LLMSettingIn,
@@ -22,7 +23,11 @@ from ..schemas import (
 from ..services import local_model
 from ..services.rewriter.llm_engine import LLMEngine, LLMError
 
-router = APIRouter(prefix="/api/settings/llm", tags=["llm"])
+router = APIRouter(
+    prefix="/api/settings/llm",
+    tags=["llm"],
+    dependencies=[Depends(require_admin)],
+)
 
 
 def _get_or_create(session: Session) -> LLMSetting:

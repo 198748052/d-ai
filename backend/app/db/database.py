@@ -38,6 +38,7 @@ def _migrate() -> None:
             ("error", "TEXT DEFAULT ''"),
             ("progress_total", "INTEGER DEFAULT 0"),
             ("progress_completed", "INTEGER DEFAULT 0"),
+            ("user_id", "INTEGER"),
         ]:
             if column not in job_columns:
                 conn.exec_driver_sql(f"ALTER TABLE rewritejob ADD COLUMN {column} {ddl}")

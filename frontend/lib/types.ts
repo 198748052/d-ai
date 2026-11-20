@@ -148,6 +148,42 @@ export interface RewriteLesson {
   updated_at: string;
 }
 
+export interface User {
+  id: number;
+  email: string;
+  nickname: string;
+  credits: number;
+  is_admin: boolean;
+}
+
+export interface CreditLogItem {
+  id: number;
+  delta: number;
+  reason: string;
+  balance_after: number;
+  created_at: string;
+}
+
+export interface AdminUser {
+  id: number;
+  email: string;
+  nickname: string;
+  credits: number;
+  is_admin: boolean;
+  created_at: string;
+  last_login_at: string;
+}
+
+export interface RedeemCodeItem {
+  id: number;
+  code: string;
+  credits: number;
+  max_uses: number;
+  used_count: number;
+  expires_at?: string;
+  created_at?: string;
+}
+
 export interface LocalModelStatus {
   loaded: boolean;
   loading: boolean;

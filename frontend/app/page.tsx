@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { apiGet, exportDocument, fetchRewriteJob, startRewriteJob } from "@/lib/api";
+import { useAuth } from "@/components/AuthContext";
 import type {
   AuditResult,
   PPLIssue,
@@ -35,6 +37,8 @@ function percent(value: number): string {
 }
 
 export default function WorkspacePage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [text, setText] = useState("");
   const [preset, setPreset] = useState<Preset | null>(null);
   const [ruleCount, setRuleCount] = useState(0);
@@ -75,6 +79,10 @@ export default function WorkspacePage() {
   }, [warnings]);
 
   const handleRewrite = useCallback(async () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
     if (!text.trim()) {
       setError("请先粘贴需要改写的文章");
       return;
@@ -130,7 +138,12 @@ export default function WorkspacePage() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "改写失败");
+      const message = err instanceof Error ? err.message : "改写失败";
+      if (message.includes("请先登录")) {
+        router.push("/login");
+        return;
+      }
+      setError(message);
     } finally {
       setRunning(false);
     }
@@ -224,6 +237,15 @@ export default function WorkspacePage() {
             <span className="text-sm text-ink-500">
               已处理 {doneCount}/{total || "?"} 段
             </span>
+          )}
+          {user ? (
+            <span className="text-xs text-ink-500">
+              本次预计消耗 {text.replace(/\s/g, "").length} 字 · 余额 {user.credits} 字
+            </span>
+          ) : (
+            <Link href="/login" className="text-xs text-accent-700 hover:underline">
+              登录后可提交改写
+            </Link>
           )}
           {running && (
             <div className="h-1.5 w-40 overflow-hidden rounded-full bg-ink-100">

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from ..db.database import get_session
+from ..deps import require_admin
 from ..models.models import FeatureRule
 from ..schemas import FeatureRuleIn, FeatureRuleOut, ImportResult
 
@@ -48,7 +49,11 @@ def list_rules(
 
 
 @router.post("", response_model=FeatureRuleOut)
-def create_rule(payload: FeatureRuleIn, session: Session = Depends(get_session)):
+def create_rule(
+    payload: FeatureRuleIn,
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     if not payload.pattern.strip():
         raise HTTPException(status_code=400, detail="匹配内容不能为空")
     row = FeatureRule(
@@ -70,7 +75,12 @@ def create_rule(payload: FeatureRuleIn, session: Session = Depends(get_session))
 
 
 @router.put("/{rule_id}", response_model=FeatureRuleOut)
-def update_rule(rule_id: int, payload: FeatureRuleIn, session: Session = Depends(get_session)):
+def update_rule(
+    rule_id: int,
+    payload: FeatureRuleIn,
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     row = session.get(FeatureRule, rule_id)
     if not row:
         raise HTTPException(status_code=404, detail="规则不存在")
@@ -90,7 +100,11 @@ def update_rule(rule_id: int, payload: FeatureRuleIn, session: Session = Depends
 
 
 @router.delete("/{rule_id}")
-def delete_rule(rule_id: int, session: Session = Depends(get_session)):
+def delete_rule(
+    rule_id: int,
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     row = session.get(FeatureRule, rule_id)
     if not row:
         raise HTTPException(status_code=404, detail="规则不存在")
@@ -106,7 +120,11 @@ def export_rules(session: Session = Depends(get_session)):
 
 
 @router.post("/import", response_model=ImportResult)
-def import_rules(payload: list[FeatureRuleIn], session: Session = Depends(get_session)):
+def import_rules(
+    payload: list[FeatureRuleIn],
+    _: object = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
     imported = 0
     skipped = 0
     for item in payload:
