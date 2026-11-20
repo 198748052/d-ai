@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/AuthContext";
-import Nav from "@/components/Nav";
+import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,8 +17,12 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body>
         <AuthProvider>
-          <Nav />
-          <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
+          <div className="min-h-screen md:flex">
+            <Sidebar />
+            <main className="min-w-0 flex-1 px-3 py-5 sm:px-5 sm:py-6">
+              <div className="mx-auto max-w-6xl">{children}</div>
+            </main>
+          </div>
         </AuthProvider>
       </body>
     </html>
