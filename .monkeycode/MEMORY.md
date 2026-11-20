@@ -41,7 +41,9 @@ This file records user instructions, preferences, and project knowledge for futu
   - 后端：`cd /workspace/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 18438`
   - 前端开发：`cd /workspace/frontend && npm run dev`（端口 18437）
   - 前端预览现用生产模式：`npm run build` 后 `npm start`；改完代码需要重新 build 再重启
-  - 一键部署：`sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/198748052/d-ai/main/scripts/deploy.sh)"`；自动克隆到 /opt/ai-rewrite、建 venv、装依赖、构建前端、写 systemd 服务
+  - 一键部署：先 `curl -o /tmp/deploy.sh` 再 `sudo bash /tmp/deploy.sh`；脚本会自动转入后台并写 `.run/deploy.log`，断 SSH 不影响
+  - 部署可重复执行：venv/node_modules 已存在时跳过或增量安装，失败后直接重跑即可续上
+  - 首次启动后端才下载 Qwen2.5-1.5B（约 3.1G），用 `journalctl -u ai-rewrite -f` 看进度
   - 本地模型统一用 `Qwen/Qwen2.5-1.5B`（float16 约 3.5G），8G 机器可跑；部署脚本默认 LOCAL_ENABLED=1 并在首次启动时下载
   - 环境变量可覆盖默认值：LOCAL_MODEL、LOCAL_DTYPE、LOCAL_ENABLED；如需更省内存再切 Qwen2.5-0.5B
   - 服务托管：`bash scripts/serve.sh` 启动前后端并自动重启，PID 写在 `.run/`；不要再单独起 uvicorn/next

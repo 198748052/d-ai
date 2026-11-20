@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # One-click deploy for the AI rewrite platform.
 #
-# Recommended:
-#   sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/198748052/d-ai/main/scripts/deploy.sh)"
+# Recommended (download then run, so it can detach and survive SSH disconnect):
+#   curl -fsSL https://raw.githubusercontent.com/198748052/d-ai/main/scripts/deploy.sh -o /tmp/deploy.sh
+#   sudo bash /tmp/deploy.sh
 #
 # Or from an existing clone:
 #   sudo bash scripts/deploy.sh
@@ -29,9 +30,9 @@ NO_START="${NO_START:-0}"
 LOCAL_MODEL="${LOCAL_MODEL:-Qwen/Qwen2.5-1.5B}"
 LOCAL_ENABLED="${LOCAL_ENABLED:-1}"
 
-log() { printf '\033[32m[deploy]\033[0m %s\n' "$*"; }
-warn() { printf '\033[33m[deploy]\033[0m %s\n' "$*"; }
-die() { printf '\033[31m[deploy]\033[0m %s\n' "$*" >&2; exit 1; }
+log() { printf '\033[32m[deploy %s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
+warn() { printf '\033[33m[deploy %s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
+die() { printf '\033[31m[deploy %s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*" >&2; exit 1; }
 
 need_cmd() { command -v "$1" >/dev/null 2>&1; }
 
@@ -54,10 +55,6 @@ install_packages() {
   fi
 }
 
-if ! need_cmd git; then
-  install_packages git
-fi
-
 APP_DIR="${APP_DIR:-}"
 SELF="${BASH_SOURCE[0]:-}"
 if [ -z "$APP_DIR" ] && [ -n "$SELF" ] && [ -f "$SELF" ]; then
@@ -67,6 +64,21 @@ if [ -z "$APP_DIR" ] && [ -n "$SELF" ] && [ -f "$SELF" ]; then
   fi
 fi
 APP_DIR="${APP_DIR:-$INSTALL_DIR}"
+
+DEPLOY_START=$(date +%s)
+FOREGROUND="${FOREGROUND:-0}"
+if [ "$FOREGROUND" != "1" ] && [ "${DEPLOY_DETACHED:-0}" != "1" ] && [ -t 1 ] && [ -n "${BASH_SOURCE[0]:-}" ]; then
+  LOG_DIR="${APP_DIR:-$INSTALL_DIR}/.run"
+  mkdir -p "$LOG_DIR" 2>/dev/null || true
+  LOG_FILE="$LOG_DIR/deploy.log"
+  printf '部署已转入后台执行，断开 SSH 也不会中断。\n日志：%s\n查看进度：tail -f %s\n' "$LOG_FILE" "$LOG_FILE"
+  DEPLOY_DETACHED=1 setsid bash "${BASH_SOURCE[0]}" "$@" >>"$LOG_FILE" 2>&1 < /dev/null &
+  exit 0
+fi
+
+if ! need_cmd git; then
+  install_packages git
+fi
 
 if [ ! -f "$APP_DIR/backend/requirements.txt" ]; then
   log "克隆代码到 $APP_DIR"
@@ -130,16 +142,28 @@ if [ "$SKIP_INSTALL" != "1" ]; then
   "${PIP_CMD[@]}" install -r "$APP_DIR/backend/requirements.txt" || die "后端依赖安装失败"
 
   if [ "$INSTALL_LOCAL_MODEL" = "1" ]; then
-    log "安装本地困惑度模型依赖（torch CPU + transformers）"
-    if ! "${PIP_CMD[@]}" install torch --index-url https://download.pytorch.org/whl/cpu; then
-      warn "torch 安装失败，困惑度功能将不可用；可稍后手动安装"
+    if [ -n "$VENV_DIR" ]; then
+      PY_CHECK=("$VENV_DIR/bin/python")
+    else
+      PY_CHECK=(python3)
     fi
-    "${PIP_CMD[@]}" install transformers || warn "transformers 安装失败，困惑度功能将不可用"
+    if "${PY_CHECK[@]}" -c 'import torch, transformers' >/dev/null 2>&1; then
+      log "本地模型依赖已存在，跳过 torch/transformers 安装"
+    else
+      log "安装本地困惑度模型依赖（torch CPU + transformers，首次较慢）"
+      if ! "${PIP_CMD[@]}" install torch --index-url https://download.pytorch.org/whl/cpu; then
+        warn "torch 安装失败，困惑度功能将不可用；可稍后手动安装"
+      fi
+      "${PIP_CMD[@]}" install transformers || warn "transformers 安装失败，困惑度功能将不可用"
+    fi
   fi
 
-  log "安装前端依赖"
-  (cd "$APP_DIR/frontend" && (npm ci --no-audit --no-fund || npm install --no-audit --no-fund)) \
-    || die "前端依赖安装失败"
+  log "安装前端依赖（首次或依赖变更时较慢）"
+  if [ -d "$APP_DIR/frontend/node_modules" ]; then
+    (cd "$APP_DIR/frontend" && npm install --no-audit --no-fund) || die "前端依赖安装失败"
+  else
+    (cd "$APP_DIR/frontend" && npm ci --no-audit --no-fund) || die "前端依赖安装失败"
+  fi
 fi
 
 if [ "$SKIP_BUILD" != "1" ]; then
@@ -204,7 +228,7 @@ else
   sleep 2
 fi
 
-log "部署完成"
+log "部署完成（总耗时 $(( $(date +%s) - DEPLOY_START ))s）"
 cat <<EOF
 
 访问地址：http://<服务器IP>:$PORT
@@ -219,6 +243,10 @@ cat <<EOF
   systemctl status $SERVICE_NAME
   journalctl -u $SERVICE_NAME -f
   手动启动：$START_CMD
+
+首次启动后端会下载 Qwen2.5-1.5B（约 3.1G），这一步在部署脚本之后进行：
+  journalctl -u $SERVICE_NAME -f        # 看下载进度
+  或登录后台「LLM 设置」查看本地模型状态
 
 数据备份：$APP_DIR/data/（app.db、secret.key、models/）
 EOF
