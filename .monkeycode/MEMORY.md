@@ -41,6 +41,9 @@ This file records user instructions, preferences, and project knowledge for futu
   - 后端：`cd /workspace/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
   - 前端开发：`cd /workspace/frontend && npm run dev`（端口 3000）
   - 前端预览现用生产模式：`npm run build` 后 `npm start`；改完代码需要重新 build 再重启
+  - 服务托管：`bash scripts/serve.sh` 启动前后端并自动重启，PID 写在 `.run/`；不要再单独起 uvicorn/next
+  - 在线更新：管理员后台「在线更新」或 `POST /api/admin/update/run`，脚本 `scripts/update.sh` 执行 fetch + ff-only + 依赖安装 + 前端构建 + 重启
+  - 可配置 GitHub webhook：`POST /api/webhooks/github`，环境变量 `GITHUB_WEBHOOK_SECRET`，仅处理 main 分支 push
   - 预览环境带宽约 500KB/s，dev 模式 main-app.js 有 6MB（eval-source-map），首屏要 10s+；生产包约 460KB，首屏 0.2s
   - 一键启动：`/workspace/start.sh`
   - 前端 `next.config.js` 把 `/api/*` 反代到 `http://127.0.0.1:8000`

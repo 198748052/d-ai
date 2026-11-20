@@ -21,6 +21,9 @@ data/secret.key
 data/models/
 .env
 
+# runtime
+.run/
+
 # temp files
 .monkeycode-tmp-files/
 *.log

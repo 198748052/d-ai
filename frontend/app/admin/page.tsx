@@ -6,6 +6,23 @@ import { apiGet, apiSend } from "@/lib/api";
 import { useAuth } from "@/components/AuthContext";
 import type { AdminUser, RedeemCodeItem } from "@/lib/types";
 
+interface UpdateCheck {
+  ok: boolean;
+  current: string;
+  current_info: string;
+  remote: string;
+  behind: number;
+  commits: string[];
+  message: string;
+}
+
+interface UpdateStatus {
+  state: string;
+  detail: string;
+  running: boolean;
+  log: string;
+}
+
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -14,6 +31,10 @@ export default function AdminPage() {
   const [credits, setCredits] = useState("500");
   const [maxUses, setMaxUses] = useState("1");
   const [created, setCreated] = useState("");
+  const [updateInfo, setUpdateInfo] = useState<UpdateCheck | null>(null);
+  const [updateState, setUpdateState] = useState<UpdateStatus | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -30,9 +51,60 @@ export default function AdminPage() {
     }
   }, []);
 
+  const loadUpdateStatus = useCallback(async () => {
+    try {
+      setUpdateState(await apiGet<UpdateStatus>("/api/admin/update/status"));
+    } catch {
+      setUpdateState(null);
+    }
+  }, []);
+
   useEffect(() => {
-    if (user?.is_admin) load();
-  }, [user, load]);
+    if (user?.is_admin) {
+      load();
+      loadUpdateStatus();
+    }
+  }, [user, load, loadUpdateStatus]);
+
+  useEffect(() => {
+    if (!updateState?.running) return;
+    const timer = setInterval(loadUpdateStatus, 3000);
+    return () => clearInterval(timer);
+  }, [updateState?.running, loadUpdateStatus]);
+
+  const checkUpdate = async () => {
+    setChecking(true);
+    setError("");
+    setMessage("");
+    try {
+      const data = await apiGet<UpdateCheck>("/api/admin/update/check");
+      setUpdateInfo(data);
+      if (!data.ok) setError(data.message);
+      else if (data.behind === 0) setMessage("已是最新版本");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "检查更新失败");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const runUpdate = async () => {
+    setUpdating(true);
+    setError("");
+    setMessage("");
+    try {
+      const data = await apiSend<{ started: boolean; message: string }>(
+        "/api/admin/update/run",
+        "POST"
+      );
+      setMessage(data.message);
+      await loadUpdateStatus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "启动更新失败");
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const adjust = async (target: AdminUser, sign: 1 | -1) => {
     const raw = deltas[target.id];
@@ -117,6 +189,74 @@ export default function AdminPage() {
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </div>
+        )}
+      </section>
+
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-ink-900">在线更新</h2>
+            <p className="mt-1 text-xs text-ink-500">
+              从 GitHub 拉取 main 分支最新代码，安装依赖、重新构建并重启服务。
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={checkUpdate}
+              disabled={checking || updateState?.running}
+              className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-ink-50 disabled:opacity-60"
+            >
+              {checking ? "检查中…" : "检查更新"}
+            </button>
+            <button
+              type="button"
+              onClick={runUpdate}
+              disabled={updating || updateState?.running || (updateInfo ? updateInfo.behind === 0 : false)}
+              className="rounded-lg bg-accent-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-60"
+            >
+              {updateState?.running ? "更新中…" : "立即更新"}
+            </button>
+          </div>
+        </div>
+
+        {updateInfo && (
+          <div className="mt-4 space-y-2 text-xs">
+            <div className="rounded-lg bg-ink-50 px-3 py-2 text-ink-700">
+              当前版本：{updateInfo.current_info || updateInfo.current.slice(0, 7)}
+              {updateInfo.ok && (
+                <span className="ml-2 text-ink-500">
+                  {updateInfo.behind > 0
+                    ? `落后 ${updateInfo.behind} 个提交`
+                    : "已是最新"}
+                </span>
+              )}
+            </div>
+            {updateInfo.commits.length > 0 && (
+              <ul className="space-y-1 rounded-lg border border-ink-100 px-3 py-2 text-ink-600">
+                {updateInfo.commits.map((item) => (
+                  <li key={item} className="truncate font-mono">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {updateState && (
+          <div className="mt-3 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600">
+            更新状态：
+            {updateState.running
+              ? "进行中（服务会在完成后自动重启）"
+              : updateState.detail || "空闲"}
+          </div>
+        )}
+        {updateState?.log && (
+          <pre className="mt-2 max-h-56 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-900/95 p-3 text-[11px] leading-5 text-ink-100">
+            {updateState.log}
+          </pre>
         )}
       </section>
 

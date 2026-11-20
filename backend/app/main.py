@@ -9,7 +9,7 @@ from sqlmodel import Session
 from .core.config import CORS_ORIGINS
 from .db.database import engine, init_db
 from .models.models import LLMSetting
-from .routers import admin, auth, credits, export, features, lessons, llm, presets, rewrite
+from .routers import admin, auth, credits, export, features, lessons, llm, presets, rewrite, update
 from .services import local_model
 from .services.seed import seed
 
@@ -44,6 +44,8 @@ app.include_router(lessons.router)
 app.include_router(auth.router)
 app.include_router(credits.router)
 app.include_router(admin.router)
+app.include_router(update.router)
+app.include_router(update.webhook_router)
 
 
 @app.get("/api/health")
