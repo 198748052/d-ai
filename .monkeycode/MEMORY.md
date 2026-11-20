@@ -55,6 +55,8 @@ This file records user instructions, preferences, and project knowledge for futu
   - 旧模型 `Qwen/Qwen2.5-0.5B` 仍在 `/workspace/data/models/Qwen__Qwen2.5-0.5B`（约 954MB）
   - 后端启动时若 `local_enabled=true` 会自动从缓存加载，不会重复下载
   - 1.5B 从缓存加载约 1-2 分钟；CPU 推理较慢，加载后剩余内存约 500MB
+  - 1.5B 必须用 float16；用 float32 重新加载会被 OOM killer 杀掉（exit 137），后端随之退出，需改回 float16 再重启
+  - `/api/settings/llm/local/load` 重复点击会重载模型；已改为先释放旧权重再加载，且接口直接拒绝 float32，避免内存翻倍被 OOM
   - 逐句困惑度接口：`POST /api/settings/llm/perplexity`
 
 ### LLM 与任务
