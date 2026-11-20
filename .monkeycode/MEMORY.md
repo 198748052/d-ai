@@ -39,7 +39,9 @@ This file records user instructions, preferences, and project knowledge for futu
 - Category: Build Methods / Operations
 - Instructions:
   - 后端：`cd /workspace/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
-  - 前端：`cd /workspace/frontend && npm run dev`（端口 3000）
+  - 前端开发：`cd /workspace/frontend && npm run dev`（端口 3000）
+  - 前端预览现用生产模式：`npm run build` 后 `npm start`；改完代码需要重新 build 再重启
+  - 预览环境带宽约 500KB/s，dev 模式 main-app.js 有 6MB（eval-source-map），首屏要 10s+；生产包约 460KB，首屏 0.2s
   - 一键启动：`/workspace/start.sh`
   - 前端 `next.config.js` 把 `/api/*` 反代到 `http://127.0.0.1:8000`
   - 预览地址：`https://3000-8cc70a671b4b3627.monkeycode-ai.online`
