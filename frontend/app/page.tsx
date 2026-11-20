@@ -183,12 +183,14 @@ export default function WorkspacePage() {
               当前预设：{preset?.name ?? "学术论文"} · 规则 + LLM 混合改写 · 规则库 {ruleCount || "—"} 条
             </p>
           </div>
-          <Link
-            href="/settings/llm"
-            className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50"
-          >
-            LLM 配置
-          </Link>
+          {user?.is_admin && (
+            <Link
+              href="/settings/llm"
+              className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50"
+            >
+              LLM 配置
+            </Link>
+          )}
         </div>
       </section>
 

@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/api";
+import { useAuth } from "@/components/AuthContext";
 import type { LLMSetting, LocalModelStatus, RewriteLesson } from "@/lib/types";
 
 interface FormState {
@@ -46,6 +48,7 @@ const PROVIDERS = [
 ];
 
 export default function LLMSettingsPage() {
+  const { user, loading: authLoading } = useAuth();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [setting, setSetting] = useState<LLMSetting | null>(null);
   const [models, setModels] = useState<string[]>([]);
@@ -96,9 +99,10 @@ export default function LLMSettingsPage() {
   }, []);
 
   useEffect(() => {
+    if (!user?.is_admin) return;
     load();
     loadLessons();
-  }, [load, loadLessons]);
+  }, [user, load, loadLessons]);
 
   const handleDeleteLesson = async (id: number) => {
     try {
@@ -220,9 +224,10 @@ export default function LLMSettingsPage() {
   }, []);
 
   useEffect(() => {
+    if (!user?.is_admin) return;
     refreshLocalStatus();
     refreshLocalFiles();
-  }, [refreshLocalStatus, refreshLocalFiles]);
+  }, [user, refreshLocalStatus, refreshLocalFiles]);
 
   useEffect(() => {
     if (!localStatus?.loading) return;
@@ -262,6 +267,24 @@ export default function LLMSettingsPage() {
       setLocalBusy(false);
     }
   };
+
+  if (authLoading) {
+    return <div className="py-10 text-center text-sm text-ink-500">加载中…</div>;
+  }
+
+  if (!user?.is_admin) {
+    return (
+      <div className="mx-auto max-w-md rounded-xl border border-ink-200 bg-white p-6 text-center shadow-card">
+        <p className="text-sm text-ink-600">LLM 配置仅管理员可访问。</p>
+        <Link
+          href="/"
+          className="mt-4 inline-block rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700"
+        >
+          返回工作台
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
