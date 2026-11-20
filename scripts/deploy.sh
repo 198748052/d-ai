@@ -26,6 +26,8 @@ SKIP_INSTALL="${SKIP_INSTALL:-0}"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 NO_SERVICE="${NO_SERVICE:-0}"
 NO_START="${NO_START:-0}"
+LOCAL_MODEL="${LOCAL_MODEL:-Qwen/Qwen2.5-1.5B}"
+LOCAL_ENABLED="${LOCAL_ENABLED:-1}"
 
 log() { printf '\033[32m[deploy]\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m[deploy]\033[0m %s\n' "$*"; }
@@ -100,7 +102,7 @@ fi
 MEM_GB=$(( $(awk '/MemTotal/ {print $2}' /proc/meminfo) / 1024 / 1024 ))
 log "内存：${MEM_GB}G"
 if [ "$MEM_GB" -lt 9 ]; then
-  warn "8G 机器建议：本地困惑度模型用 Qwen2.5-0.5B，或保持 local_enabled=false；构建前端前先停掉其它大内存进程"
+  warn "8G 机器跑 1.5B（float16 约 3.5G）可以，但构建前端前先停掉其它大内存进程；若频繁 OOM 可改用 Qwen/Qwen2.5-0.5B"
 fi
 
 if [ "$SKIP_INSTALL" != "1" ]; then
@@ -177,6 +179,8 @@ elif [ "$NO_SERVICE" != "1" ] && [ "$(id -u)" -eq 0 ] && need_cmd systemctl; the
     echo "RestartSec=5"
     echo "Environment=PATH=$SERVICE_PATH"
     echo "Environment=FRONTEND_PORT=$PORT"
+    echo "Environment=LOCAL_MODEL=$LOCAL_MODEL"
+    echo "Environment=LOCAL_ENABLED=$LOCAL_ENABLED"
     if [ -n "${GITHUB_WEBHOOK_SECRET:-}" ]; then
       echo "Environment=GITHUB_WEBHOOK_SECRET=$GITHUB_WEBHOOK_SECRET"
     fi
@@ -195,7 +199,7 @@ elif [ "$NO_SERVICE" != "1" ] && [ "$(id -u)" -eq 0 ] && need_cmd systemctl; the
   fi
 else
   log "未使用 systemd，后台启动服务"
-  ( cd "$APP_DIR" && PATH="$SERVICE_PATH" nohup bash scripts/serve.sh >"$RUN_DIR/serve.log" 2>&1 & )
+  ( cd "$APP_DIR" && PATH="$SERVICE_PATH" LOCAL_MODEL="$LOCAL_MODEL" LOCAL_ENABLED="$LOCAL_ENABLED" nohup bash scripts/serve.sh >"$RUN_DIR/serve.log" 2>&1 & )
   sleep 2
 fi
 
@@ -206,7 +210,7 @@ cat <<EOF
 首次使用：注册第一个账号，该账号自动成为管理员
 接下来：
   1. 进入「LLM 设置」填写 Base URL、模型和 API Key
-  2. 8G 内存建议启用 Qwen/Qwen2.5-0.5B（float16），1.5B 也能跑但余量较小
+  2. 默认使用 Qwen/Qwen2.5-1.5B（float16 约 3.5G），首次启动会从 ModelScope 下载；如遇 OOM 改用 0.5B
   3. 需要 GitHub 自动更新时，设置 GITHUB_WEBHOOK_SECRET 并配置仓库 Webhook
   4. 建议用 nginx 把 80/443 反代到 127.0.0.1:$PORT，只对外暴露 80/443
 

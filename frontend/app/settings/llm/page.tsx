@@ -31,7 +31,7 @@ const EMPTY: FormState = {
   concurrency: 3,
   timeout: 120,
   local_enabled: false,
-  local_model: "uer/gpt2-chinese-cluecorpussmall",
+  local_model: "Qwen/Qwen2.5-1.5B",
   local_dtype: "float16",
   ppl_min: 60,
   ppl_retry: 2,
@@ -75,7 +75,7 @@ export default function LLMSettingsPage() {
         concurrency: data.concurrency,
         timeout: data.timeout,
         local_enabled: data.local_enabled ?? false,
-        local_model: data.local_model ?? "uer/gpt2-chinese-cluecorpussmall",
+        local_model: data.local_model ?? "Qwen/Qwen2.5-1.5B",
         local_dtype: data.local_dtype ?? "float16",
         ppl_min: data.ppl_min ?? 60,
         ppl_retry: data.ppl_retry ?? 2,
@@ -458,7 +458,7 @@ export default function LLMSettingsPage() {
             <input
               value={form.local_model}
               onChange={(e) => update("local_model", e.target.value)}
-              placeholder="uer/gpt2-chinese-cluecorpussmall"
+              placeholder="Qwen/Qwen2.5-1.5B"
               className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
             />
           </div>

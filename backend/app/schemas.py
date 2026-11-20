@@ -87,7 +87,7 @@ class LLMSettingIn(BaseModel):
     concurrency: int = 3
     timeout: int = 120
     local_enabled: bool = False
-    local_model: str = "uer/gpt2-chinese-cluecorpussmall"
+    local_model: str = "Qwen/Qwen2.5-1.5B"
     local_dtype: str = "float16"
     ppl_min: float = 60.0
     ppl_retry: int = 2
@@ -105,7 +105,7 @@ class LLMSettingOut(BaseModel):
     concurrency: int
     timeout: int
     local_enabled: bool = False
-    local_model: str = "uer/gpt2-chinese-cluecorpussmall"
+    local_model: str = "Qwen/Qwen2.5-1.5B"
     local_dtype: str = "float16"
     ppl_min: float = 60.0
     ppl_retry: int = 2

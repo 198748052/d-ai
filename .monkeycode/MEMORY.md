@@ -42,7 +42,8 @@ This file records user instructions, preferences, and project knowledge for futu
   - 前端开发：`cd /workspace/frontend && npm run dev`（端口 3000）
   - 前端预览现用生产模式：`npm run build` 后 `npm start`；改完代码需要重新 build 再重启
   - 一键部署：`sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/198748052/d-ai/main/scripts/deploy.sh)"`；自动克隆到 /opt/ai-rewrite、建 venv、装依赖、构建前端、写 systemd 服务
-  - 8G 机器：本地模型建议 Qwen2.5-0.5B 或 local_enabled=false；构建前端时避免其它大内存进程
+  - 本地模型统一用 `Qwen/Qwen2.5-1.5B`（float16 约 3.5G），8G 机器可跑；部署脚本默认 LOCAL_ENABLED=1 并在首次启动时下载
+  - 环境变量可覆盖默认值：LOCAL_MODEL、LOCAL_DTYPE、LOCAL_ENABLED；如需更省内存再切 Qwen2.5-0.5B
   - 服务托管：`bash scripts/serve.sh` 启动前后端并自动重启，PID 写在 `.run/`；不要再单独起 uvicorn/next
   - 在线更新：管理员后台「在线更新」或 `POST /api/admin/update/run`，脚本 `scripts/update.sh` 执行 fetch + ff-only + 依赖安装 + 前端构建 + 重启
   - 可配置 GitHub webhook：`POST /api/webhooks/github`，环境变量 `GITHUB_WEBHOOK_SECRET`，仅处理 main 分支 push

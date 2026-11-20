@@ -23,8 +23,8 @@ def _migrate() -> None:
         llm_columns = [row[1] for row in conn.exec_driver_sql("PRAGMA table_info(llmsetting)")]
         for column, ddl in [
             ("local_enabled", "BOOLEAN DEFAULT 0"),
-            ("local_model", "VARCHAR DEFAULT 'uer/gpt2-chinese-cluecorpussmall'"),
-            ("local_dtype", "VARCHAR DEFAULT 'float32'"),
+            ("local_model", "VARCHAR DEFAULT 'Qwen/Qwen2.5-1.5B'"),
+            ("local_dtype", "VARCHAR DEFAULT 'float16'"),
             ("ppl_min", "FLOAT DEFAULT 60.0"),
             ("ppl_retry", "INTEGER DEFAULT 2"),
             ("ppl_severe", "FLOAT DEFAULT 25.0"),

@@ -53,7 +53,7 @@ def _to_out(setting: LLMSetting) -> LLMSettingOut:
         concurrency=setting.concurrency,
         timeout=setting.timeout,
         local_enabled=getattr(setting, "local_enabled", False),
-        local_model=getattr(setting, "local_model", "uer/gpt2-chinese-cluecorpussmall"),
+        local_model=getattr(setting, "local_model", "Qwen/Qwen2.5-1.5B"),
         local_dtype=getattr(setting, "local_dtype", "float16"),
         ppl_min=float(getattr(setting, "ppl_min", 60.0) or 60.0),
         ppl_retry=int(getattr(setting, "ppl_retry", 2) or 0),
@@ -77,7 +77,7 @@ def update_setting(payload: LLMSettingIn, session: Session = Depends(get_session
     setting.concurrency = max(1, payload.concurrency)
     setting.timeout = max(5, payload.timeout)
     setting.local_enabled = payload.local_enabled
-    setting.local_model = payload.local_model.strip() or "uer/gpt2-chinese-cluecorpussmall"
+    setting.local_model = payload.local_model.strip() or "Qwen/Qwen2.5-1.5B"
     setting.local_dtype = payload.local_dtype or "float16"
     setting.ppl_min = max(1.0, payload.ppl_min)
     setting.ppl_retry = max(0, min(5, payload.ppl_retry))

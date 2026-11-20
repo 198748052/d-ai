@@ -5,6 +5,12 @@ from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
+from ..core.config import (
+    DEFAULT_LOCAL_DTYPE,
+    DEFAULT_LOCAL_ENABLED,
+    DEFAULT_LOCAL_MODEL,
+)
+
 
 class FeatureRule(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -30,9 +36,9 @@ class LLMSetting(SQLModel, table=True):
     max_tokens: int = 4096
     concurrency: int = 3
     timeout: int = 120
-    local_enabled: bool = False
-    local_model: str = "uer/gpt2-chinese-cluecorpussmall"
-    local_dtype: str = "float16"
+    local_enabled: bool = DEFAULT_LOCAL_ENABLED
+    local_model: str = DEFAULT_LOCAL_MODEL
+    local_dtype: str = DEFAULT_LOCAL_DTYPE
     ppl_min: float = 60.0
     ppl_retry: int = 2
     ppl_severe: float = 25.0
