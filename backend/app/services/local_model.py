@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import gc
 import math
 import os
 import threading
@@ -97,6 +98,13 @@ def load_model(model_name: str, dtype: str = "float16") -> dict:
     with _lock:
         if _model is not None and _loaded_name == model_name and _loaded_dtype == dtype:
             return status()
+        if _model is not None:
+            # Free the old weights before loading, otherwise peak memory doubles and the process gets OOM-killed.
+            _model = None
+            _tokenizer = None
+            _loaded_name = None
+            _loaded_dtype = None
+            gc.collect()
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
 

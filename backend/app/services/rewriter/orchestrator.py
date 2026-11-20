@@ -15,6 +15,7 @@ from ..protector import Protector
 from ..segmenter import join_paragraphs, split_paragraphs, split_sentences
 from .audit import audit_text, collect_hits
 from .features import ai_likeness, analyze, paragraph_metrics, uniform_runs
+from .lessons import recent_lessons, record_lesson
 from .llm_engine import LLMContext, LLMEngine, LLMError
 from .rule_engine import RewriteOptions, Rule, RuleEngine
 
@@ -59,7 +60,8 @@ def _acceptable(original: str, candidate: str, max_ratio: float = 1.5, min_ratio
     if not candidate or not candidate.strip():
         return False
     ratio = len(candidate) / max(1, len(original))
-    if ratio > max_ratio or ratio < min_ratio:
+    delta = abs(len(candidate) - len(original))
+    if delta > 30 and (ratio > max_ratio or ratio < min_ratio):
         return False
     return not _has_duplication(candidate)
 
@@ -102,6 +104,10 @@ class RewriteContext:
     use_llm: bool = True
     use_local_model: bool = False
     concurrency: int = 3
+    ppl_min: float = 60.0
+    ppl_retry: int = 2
+    ppl_severe: float = 25.0
+    lessons: list[str] = field(default_factory=list)
 
 
 def load_rules(session: Session, lexicon_scope: str, style: str = "general") -> list[Rule]:
@@ -187,6 +193,10 @@ def build_context(req: RewriteRequest, session: Session) -> RewriteContext:
     ctx.use_local_model = bool(setting and getattr(setting, "local_enabled", False))
     if setting:
         ctx.concurrency = min(3, max(1, setting.concurrency))
+        ctx.ppl_min = float(getattr(setting, "ppl_min", 60.0) or 60.0)
+        ctx.ppl_retry = max(0, int(getattr(setting, "ppl_retry", 2) or 0))
+        ctx.ppl_severe = float(getattr(setting, "ppl_severe", 25.0) or 25.0)
+    ctx.lessons = recent_lessons(ctx.style)
 
     ctx.mode = "hybrid"
     ctx.use_rule_engine = True
@@ -204,6 +214,64 @@ def _length_ratio(original: str, rewritten: str) -> float:
     if not original:
         return 1.0
     return round(len(rewritten) / max(1, len(original)), 4)
+
+
+async def _enforce_perplexity(
+    index: int,
+    original: str,
+    current: str,
+    ctx: RewriteContext,
+    llm: LLMEngine | None,
+    llm_ctx: LLMContext | None,
+    warnings: list[str],
+    masked: str,
+    protector: Protector,
+    spans: list[str],
+) -> str:
+    """Regenerate sentences whose local-model perplexity is too low."""
+    if not ctx.use_local_model or llm is None or llm_ctx is None or len(current) < 60:
+        return current
+    from ..local_model import sentence_perplexities, status
+
+    if not status().get("loaded"):
+        return current
+
+    for attempt in range(ctx.ppl_retry + 1):
+        try:
+            scored = protector.restore(current, spans)
+            items = await asyncio.to_thread(sentence_perplexities, scored, 12)
+        except Exception:  # noqa: BLE001
+            return current
+        low = [item for item in items if item["perplexity"] < ctx.ppl_min]
+        if not low:
+            return current
+        if attempt >= ctx.ppl_retry:
+            for item in low:
+                severe = item["perplexity"] < ctx.ppl_severe
+                record_lesson(
+                    style=ctx.style,
+                    sentence=item["sentence"],
+                    original=original,
+                    perplexity=item["perplexity"],
+                    threshold=ctx.ppl_min,
+                    note="严重：重写后仍远低于困惑度阈值" if severe else "重写后仍低于困惑度阈值",
+                )
+            warnings.append(
+                f"第 {index + 1} 段有 {len(low)} 句困惑度低于 {ctx.ppl_min:g}，重写 {ctx.ppl_retry} 次仍未达标"
+            )
+            return current
+        try:
+            candidate = await llm.rewrite_low_perplexity(current, low, llm_ctx)
+        except LLMError as exc:
+            warnings.append(f"第 {index + 1} 段低困惑度重写失败：{exc}")
+            return current
+        if not LLMEngine.placeholders_intact(masked, candidate):
+            continue
+        candidate = _clean_candidate(current, candidate)
+        if not _acceptable(current, candidate, max_ratio=1.6, min_ratio=0.55):
+            continue
+        current = candidate
+    return current
 
 
 async def _rewrite_one(
@@ -244,6 +312,7 @@ async def _rewrite_one(
             current = await asyncio.to_thread(engine.rewrite, current, options)
 
         llm_used = False
+        llm_ctx = None
         if ctx.use_llm and llm is not None and llm.configured:
             llm_ctx = LLMContext(
                 style=ctx.style,
@@ -254,6 +323,7 @@ async def _rewrite_one(
                 length_ratio_max=ctx.length_ratio_max,
                 banned_words=ctx.banned_words,
                 extra_prompt=ctx.extra_prompt,
+                lessons=list(ctx.lessons),
             )
             audit_engine = RuleEngine(rules)
             academic = ctx.style in {"academic", "official"}
@@ -283,8 +353,9 @@ async def _rewrite_one(
                         break
                     candidate = _clean_candidate(piece, candidate)
                     if not _acceptable(piece, candidate):
-                        warnings.append(f"第 {index + 1} 段改写结果长度异常或重复，已保留上一轮结果")
-                        break
+                        if round_index >= ctx.max_rounds - 1:
+                            warnings.append(f"第 {index + 1} 段改写结果长度异常或重复，已保留上一轮结果")
+                        continue
                     piece = candidate
                     llm_used = True
                     hits = collect_hits(piece, audit_engine)
@@ -293,7 +364,7 @@ async def _rewrite_one(
                 rewritten_chunks.append(piece)
             current = "".join(rewritten_chunks)
 
-            for _ in range(2):
+            for check_index in range(2):
                 remaining = collect_hits(current, audit_engine)
                 if not remaining:
                     break
@@ -307,12 +378,13 @@ async def _rewrite_one(
                     break
                 candidate = _clean_candidate(current, candidate)
                 if not _acceptable(current, candidate):
-                    warnings.append(f"第 {index + 1} 段复检结果长度异常或重复，已保留上一轮结果")
-                    break
+                    if check_index >= 1:
+                        warnings.append(f"第 {index + 1} 段复检结果长度异常或重复，已保留上一轮结果")
+                    continue
                 current = candidate
 
             if academic:
-                for _ in range(2):
+                for _ in range(2 if len(current) >= 60 else 0):
                     metrics = analyze(current)
                     runs = uniform_runs(current)
                     pmetrics = paragraph_metrics(current)
@@ -376,6 +448,10 @@ async def _rewrite_one(
 
         if ctx.use_rule_engine and ctx.mode == "hybrid":
             current = await asyncio.to_thread(engine.audit, current, options)
+
+        current = await _enforce_perplexity(
+            index, paragraph, current, ctx, llm, llm_ctx, warnings, masked, protector, spans
+        )
 
         restored = protector.restore(current, spans)
         if not restored.strip():
@@ -451,5 +527,11 @@ async def rewrite_document(
 
     ordered = [r for r in results if r is not None]
     response = _build_response(ordered, warnings)
-    response.audit = AuditResult(**audit_text(response.rewritten_text, RuleEngine(rules), use_local=ctx.use_local_model))
+    audit_result = await asyncio.to_thread(
+        audit_text,
+        response.rewritten_text,
+        RuleEngine(rules),
+        use_local=ctx.use_local_model,
+    )
+    response.audit = AuditResult(**audit_result)
     return response

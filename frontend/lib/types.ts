@@ -119,6 +119,23 @@ export interface LLMSetting {
   local_enabled: boolean;
   local_model: string;
   local_dtype: string;
+  ppl_min: number;
+  ppl_retry: number;
+  ppl_severe: number;
+}
+
+export interface RewriteLesson {
+  id: number;
+  style: string;
+  kind: string;
+  sentence: string;
+  original: string;
+  perplexity: number;
+  threshold: number;
+  hits: number;
+  note: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface LocalModelStatus {

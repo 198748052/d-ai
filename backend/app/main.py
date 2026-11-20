@@ -9,7 +9,7 @@ from sqlmodel import Session
 from .core.config import CORS_ORIGINS
 from .db.database import engine, init_db
 from .models.models import LLMSetting
-from .routers import export, features, llm, presets, rewrite
+from .routers import export, features, lessons, llm, presets, rewrite
 from .services import local_model
 from .services.seed import seed
 
@@ -40,6 +40,7 @@ app.include_router(llm.router)
 app.include_router(features.router)
 app.include_router(presets.router)
 app.include_router(export.router)
+app.include_router(lessons.router)
 
 
 @app.get("/api/health")

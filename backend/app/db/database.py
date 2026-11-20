@@ -25,6 +25,9 @@ def _migrate() -> None:
             ("local_enabled", "BOOLEAN DEFAULT 0"),
             ("local_model", "VARCHAR DEFAULT 'uer/gpt2-chinese-cluecorpussmall'"),
             ("local_dtype", "VARCHAR DEFAULT 'float32'"),
+            ("ppl_min", "FLOAT DEFAULT 60.0"),
+            ("ppl_retry", "INTEGER DEFAULT 2"),
+            ("ppl_severe", "FLOAT DEFAULT 25.0"),
         ]:
             if column not in llm_columns:
                 conn.exec_driver_sql(f"ALTER TABLE llmsetting ADD COLUMN {column} {ddl}")

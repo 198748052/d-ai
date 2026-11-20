@@ -45,10 +45,13 @@ class LLMContext:
     length_ratio_max: float = 1.15
     banned_words: list[str] = None
     extra_prompt: str = ""
+    lessons: list[str] = None
 
     def __post_init__(self) -> None:
         if self.banned_words is None:
             self.banned_words = []
+        if self.lessons is None:
+            self.lessons = []
 
 
 class LLMEngine:
@@ -67,6 +70,8 @@ class LLMEngine:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
+        self.reasoning_effort = "low"
+        self._effort_supported = True
 
     @classmethod
     def from_setting(cls, setting: LLMSetting) -> "LLMEngine":
@@ -83,7 +88,12 @@ class LLMEngine:
     def configured(self) -> bool:
         return bool(self.api_key and self.base_url and self.model)
 
-    async def _chat(self, messages: list[dict], temperature: float | None = None) -> str:
+    async def _chat(
+        self,
+        messages: list[dict],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+    ) -> str:
         if not self.configured:
             raise LLMError("LLM 未配置，请先在设置页填写 Base URL、模型和 API Key")
         url = f"{self.base_url}/chat/completions"
@@ -91,22 +101,50 @@ class LLMEngine:
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": self.temperature if temperature is None else temperature,
-            "max_tokens": self.max_tokens,
-        }
+        base_temperature = self.temperature if temperature is None else temperature
+        budget = max_tokens or self.max_tokens
         last_error: Exception | None = None
         for attempt in range(3):
+            payload = {
+                "model": self.model,
+                "messages": messages,
+                "temperature": min(1.6, base_temperature + 0.15 * attempt),
+                "max_tokens": budget,
+            }
+            if self._effort_supported:
+                payload["reasoning_effort"] = self.reasoning_effort
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     resp = await client.post(url, headers=headers, json=payload)
+                    if (
+                        resp.status_code == 400
+                        and self._effort_supported
+                        and "reasoning_effort" in resp.text
+                    ):
+                        self._effort_supported = False
+                        payload.pop("reasoning_effort", None)
+                        resp = await client.post(url, headers=headers, json=payload)
                 if resp.status_code >= 400:
+                    if resp.status_code == 400 and "max_tokens" in resp.text and budget > self.max_tokens:
+                        budget = self.max_tokens
                     raise LLMError(f"LLM 返回 {resp.status_code}: {resp.text[:300]}")
                 data = resp.json()
-                content = data["choices"][0]["message"]["content"]
-                if not content or not content.strip():
+                choice = data["choices"][0]
+                message = choice.get("message") or {}
+                content = message.get("content") or ""
+                finish_reason = choice.get("finish_reason")
+                if not content.strip():
+                    if finish_reason == "length":
+                        logger.warning(
+                            "LLM output truncated at max_tokens=%s, raising budget",
+                            budget,
+                        )
+                        budget = min(budget * 2, 16384)
+                        if max_tokens is None:
+                            self.max_tokens = max(self.max_tokens, budget)
+                        raise LLMError(
+                            f"LLM 输出被截断（finish_reason=length，max_tokens={payload['max_tokens']}）"
+                        )
                     raise LLMError("LLM 返回空内容")
                 return content
             except Exception as exc:  # noqa: BLE001
@@ -147,10 +185,7 @@ class LLMEngine:
     ) -> str:
         sentences = [item for item in re.split(r"(?<=[。！？!?；;…])", text) if item.strip()]
         lengths = [len(item) for item in sentences]
-        listing = "\n".join(
-            f"{index + 1}. [{lengths[index]}字] {sentences[index][:50]}"
-            for index in range(len(sentences))
-        )
+        listing = "、".join(str(length) for length in lengths)
         system = (
             "你是文字编辑。下面这段文字的句子长度过于接近，机器感偏重。\n"
             f"当前句长变异系数 CV={metrics.get('cv')}，目标是不低于 0.45。\n"
@@ -160,9 +195,8 @@ class LLMEngine:
             "- 把最短的两句合并成一句；\n"
             "- 调整后至少一句超过 40 字，至少一句少于 15 字；\n"
             "- 拆分后每句要有完整的主谓结构，避免残句；\n"
-            "- 只输出修改后的正文，不要解释、不要换行。\n"
-            "句子清单：\n"
-            f"{listing}"
+            "- 只输出修改后的正文，不要解释、不要换行、不要编号。\n"
+            f"当前每句字数（按句序）：{listing}"
             + (
                 "\n本段还存在以下问题，请一并修正：\n"
                 + "\n".join(f"- {item}" for item in issues)
@@ -255,6 +289,45 @@ class LLMEngine:
                     "改写完成后自查：上述每一条是否都已消失。",
                 ]
             )
+
+    @staticmethod
+    def _append_lessons(lines: list[str], ctx: LLMContext) -> None:
+        if not ctx.lessons:
+            return
+        lines.extend(
+            [
+                "",
+                "以下写法在以往改写中被判定为过于可预测（困惑度偏低），本次必须避免复用：",
+                *[f"- 「{item}」" for item in ctx.lessons[:8]],
+            ]
+        )
+
+    async def rewrite_low_perplexity(
+        self,
+        text: str,
+        flagged: list[dict],
+        ctx: LLMContext,
+    ) -> str:
+        lines = [
+            "你是审稿编辑。下面这段文字里有些句子过于可预测，读起来像模板拼出来的（困惑度偏低）。",
+            "请重写这些句子：换具体说法、调整语序、补充限定条件或细节，让它们更像真人写的。",
+            "其余句子尽量保持不动，原意、术语、数据、引用、占位符和段落结构不变。",
+            "只输出整段正文，不要解释、不要编号、不要换行。",
+            "",
+            "必须重写的句子：",
+        ]
+        for index, item in enumerate(flagged[:10], 1):
+            lines.append(f"{index}. 「{item['sentence']}」（困惑度 {item['perplexity']}）")
+        self._append_lessons(lines, ctx)
+        messages = [
+            {"role": "system", "content": "\n".join(lines)},
+            {"role": "user", "content": text},
+        ]
+        raw = await self._chat(messages, temperature=1.35)
+        cleaned = self._postprocess(raw)
+        if not cleaned:
+            raise LLMError("LLM 返回内容为空")
+        return cleaned
 
     def _build_correction_prompt(
         self,
@@ -385,6 +458,7 @@ class LLMEngine:
             )
         if ctx.extra_prompt:
             lines.append(f"额外要求：{ctx.extra_prompt}")
+        self._append_lessons(lines, ctx)
         self._append_constraints(lines, hits, context)
         return "\n".join(lines)
 
@@ -467,6 +541,7 @@ class LLMEngine:
             )
         if ctx.extra_prompt:
             lines.append(f"额外要求：{ctx.extra_prompt}")
+        self._append_lessons(lines, ctx)
         self._append_constraints(lines, hits, context)
         return "\n".join(lines)
 

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
-import type { LLMSetting, LocalModelStatus } from "@/lib/types";
+import type { LLMSetting, LocalModelStatus, RewriteLesson } from "@/lib/types";
 
 interface FormState {
   provider: string;
@@ -16,6 +16,9 @@ interface FormState {
   local_enabled: boolean;
   local_model: string;
   local_dtype: string;
+  ppl_min: number;
+  ppl_retry: number;
+  ppl_severe: number;
 }
 
 const EMPTY: FormState = {
@@ -30,6 +33,9 @@ const EMPTY: FormState = {
   local_enabled: false,
   local_model: "uer/gpt2-chinese-cluecorpussmall",
   local_dtype: "float16",
+  ppl_min: 60,
+  ppl_retry: 2,
+  ppl_severe: 25,
 };
 
 const PROVIDERS = [
@@ -53,6 +59,7 @@ export default function LLMSettingsPage() {
     exists: boolean;
     size_mb: number;
   } | null>(null);
+  const [lessons, setLessons] = useState<RewriteLesson[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -70,15 +77,37 @@ export default function LLMSettingsPage() {
         local_enabled: data.local_enabled ?? false,
         local_model: data.local_model ?? "uer/gpt2-chinese-cluecorpussmall",
         local_dtype: data.local_dtype ?? "float16",
+        ppl_min: data.ppl_min ?? 60,
+        ppl_retry: data.ppl_retry ?? 2,
+        ppl_severe: data.ppl_severe ?? 25,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     }
   }, []);
 
+  const loadLessons = useCallback(async () => {
+    try {
+      const data = await apiGet<RewriteLesson[]>("/api/lessons?style=academic&limit=20");
+      setLessons(data);
+    } catch {
+      setLessons([]);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadLessons();
+  }, [load, loadLessons]);
+
+  const handleDeleteLesson = async (id: number) => {
+    try {
+      await apiSend<{ ok: boolean }>(`/api/lessons/${id}`, "DELETE");
+      await loadLessons();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "删除失败");
+    }
+  };
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -99,6 +128,9 @@ export default function LLMSettingsPage() {
         local_enabled: form.local_enabled,
         local_model: form.local_model,
         local_dtype: form.local_dtype,
+        ppl_min: form.ppl_min,
+        ppl_retry: form.ppl_retry,
+        ppl_severe: form.ppl_severe,
       };
       if (form.api_key.trim()) payload.api_key = form.api_key.trim();
       await apiSend<LLMSetting>("/api/settings/llm", "PUT", payload);
@@ -496,6 +528,93 @@ export default function LLMSettingsPage() {
         <p className="mt-2 text-xs text-ink-400">
           参考：Qwen/Qwen2.5-0.5B 约 1GB；Qwen/Qwen2.5-1.5B 约 3~4GB。模型文件会保存在本地，重启后自动从缓存加载，不会重复下载。
         </p>
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink-900">困惑度阈值与踩坑记录</h2>
+        <p className="mt-1 text-sm text-ink-500">
+          低于阈值的句子会触发整段重写；重写后仍低于严重阈值的句子会被记录，并在后续改写时写入提示词避开。
+        </p>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-500">达标阈值</label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={form.ppl_min}
+              onChange={(e) => update("ppl_min", Number(e.target.value))}
+              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-500">重写次数</label>
+            <input
+              type="number"
+              min={0}
+              max={5}
+              value={form.ppl_retry}
+              onChange={(e) => update("ppl_retry", Number(e.target.value))}
+              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-500">严重标记阈值</label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={form.ppl_severe}
+              onChange={(e) => update("ppl_severe", Number(e.target.value))}
+              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={busy}
+            className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-60"
+          >
+            保存阈值
+          </button>
+          <button
+            type="button"
+            onClick={loadLessons}
+            className="rounded-lg border border-ink-200 px-4 py-2 text-sm text-ink-700 hover:bg-ink-50"
+          >
+            刷新记录
+          </button>
+          <span className="text-xs text-ink-400">共 {lessons.length} 条</span>
+        </div>
+        <div className="mt-4 space-y-2">
+          {lessons.length === 0 && (
+            <div className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">暂无踩坑记录</div>
+          )}
+          {lessons.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-start gap-3 rounded-lg border border-ink-100 px-3 py-2"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-sm text-ink-800">{item.sentence}</div>
+                <div className="mt-1 text-xs text-ink-500">
+                  困惑度 {item.perplexity} · 出现 {item.hits} 次
+                  {item.note ? ` · ${item.note}` : ""}
+                  {item.original ? ` · 原句：${item.original}` : ""}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleDeleteLesson(item.id)}
+                className="shrink-0 rounded-md border border-ink-200 px-2 py-1 text-xs text-ink-600 hover:bg-ink-50"
+              >
+                删除
+              </button>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );

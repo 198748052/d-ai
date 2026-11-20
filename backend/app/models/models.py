@@ -33,6 +33,23 @@ class LLMSetting(SQLModel, table=True):
     local_enabled: bool = False
     local_model: str = "uer/gpt2-chinese-cluecorpussmall"
     local_dtype: str = "float16"
+    ppl_min: float = 60.0
+    ppl_retry: int = 2
+    ppl_severe: float = 25.0
+
+
+class RewriteLesson(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    style: str = "academic"
+    kind: str = "low_perplexity"  # low_perplexity
+    sentence: str = ""
+    original: str = ""
+    perplexity: float = 0.0
+    threshold: float = 0.0
+    hits: int = 1
+    note: str = ""
 
 
 class Preset(SQLModel, table=True):

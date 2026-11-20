@@ -50,6 +50,9 @@ def _to_out(setting: LLMSetting) -> LLMSettingOut:
         local_enabled=getattr(setting, "local_enabled", False),
         local_model=getattr(setting, "local_model", "uer/gpt2-chinese-cluecorpussmall"),
         local_dtype=getattr(setting, "local_dtype", "float16"),
+        ppl_min=float(getattr(setting, "ppl_min", 60.0) or 60.0),
+        ppl_retry=int(getattr(setting, "ppl_retry", 2) or 0),
+        ppl_severe=float(getattr(setting, "ppl_severe", 25.0) or 25.0),
     )
 
 
@@ -71,6 +74,9 @@ def update_setting(payload: LLMSettingIn, session: Session = Depends(get_session
     setting.local_enabled = payload.local_enabled
     setting.local_model = payload.local_model.strip() or "uer/gpt2-chinese-cluecorpussmall"
     setting.local_dtype = payload.local_dtype or "float16"
+    setting.ppl_min = max(1.0, payload.ppl_min)
+    setting.ppl_retry = max(0, min(5, payload.ppl_retry))
+    setting.ppl_severe = max(1.0, min(payload.ppl_min, payload.ppl_severe))
     if payload.api_key is not None and payload.api_key.strip():
         setting.api_key_enc = encrypt(payload.api_key.strip())
     session.add(setting)
@@ -147,6 +153,11 @@ def local_load(payload: LocalModelLoadIn, session: Session = Depends(get_session
     dtype = (payload.dtype or setting.local_dtype or "float32").strip()
     if not model_name:
         raise HTTPException(status_code=400, detail="请填写本地模型名称")
+    if dtype == "float32":
+        raise HTTPException(
+            status_code=400,
+            detail="当前环境内存有限，float32 会在加载时被 OOM 杀掉，请改用 float16 或 bfloat16",
+        )
     local_model.load_model_async(model_name, dtype)
     return local_model.status()
 
