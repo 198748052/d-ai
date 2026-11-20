@@ -336,6 +336,24 @@ export default function HistoryPage() {
                 )
               )}
 
+              {detail.result?.ppl_issues?.length ? (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  <div className="font-medium">
+                    困惑度未达标 {detail.result.ppl_issues.length} 句：
+                  </div>
+                  <ul className="mt-2 space-y-2">
+                    {detail.result.ppl_issues.map((item, index) => (
+                      <li key={`${item.paragraph}-${index}`}>
+                        <span className="text-amber-700">
+                          第 {item.paragraph} 段 · 困惑度 {item.perplexity}：
+                        </span>
+                        <span className="ml-1 text-ink-800">{item.sentence}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
               {detail.result?.warnings?.length ? (
                 <details className="text-xs text-amber-700">
                   <summary className="cursor-pointer">回退提示 {detail.result.warnings.length} 条</summary>

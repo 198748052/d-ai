@@ -53,11 +53,20 @@ export interface AuditResult {
   metrics?: AuditMetrics;
 }
 
+export interface PPLIssue {
+  paragraph: number;
+  sentence: string;
+  perplexity: number;
+  threshold: number;
+  attempts: number;
+}
+
 export interface RewriteResponse {
   paragraphs: ParagraphResult[];
   rewritten_text: string;
   stats: RewriteStats;
   warnings: string[];
+  ppl_issues: PPLIssue[];
   audit?: AuditResult | null;
 }
 
@@ -70,6 +79,7 @@ export interface RewriteJobStatus {
   stats: RewriteStats | null;
   audit?: AuditResult | null;
   warnings: string[];
+  ppl_issues?: PPLIssue[];
   error: string | null;
 }
 
@@ -184,6 +194,7 @@ export interface JobResult {
   stats: RewriteStats;
   audit: AuditResult | null;
   warnings: string[];
+  ppl_issues?: PPLIssue[];
 }
 
 export interface JobDetail extends JobSummary {

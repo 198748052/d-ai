@@ -10,7 +10,14 @@ from dataclasses import dataclass, field
 from sqlmodel import Session, select
 
 from ...models.models import FeatureRule, LLMSetting, Preset
-from ...schemas import AuditResult, ParagraphResult, RewriteRequest, RewriteResponse, RewriteStats
+from ...schemas import (
+    AuditResult,
+    PPLIssue,
+    ParagraphResult,
+    RewriteRequest,
+    RewriteResponse,
+    RewriteStats,
+)
 from ..protector import Protector
 from ..segmenter import join_paragraphs, split_paragraphs, split_sentences
 from .audit import audit_text, collect_hits
@@ -227,6 +234,7 @@ async def _enforce_perplexity(
     masked: str,
     protector: Protector,
     spans: list[str],
+    ppl_issues: list[dict],
 ) -> str:
     """Regenerate sentences whose local-model perplexity is too low."""
     if not ctx.use_local_model or llm is None or llm_ctx is None or len(current) < 60:
@@ -256,8 +264,22 @@ async def _enforce_perplexity(
                     threshold=ctx.ppl_min,
                     note="严重：重写后仍远低于困惑度阈值" if severe else "重写后仍低于困惑度阈值",
                 )
+            for item in low:
+                ppl_issues.append(
+                    {
+                        "paragraph": index + 1,
+                        "sentence": item["sentence"].strip(),
+                        "perplexity": item["perplexity"],
+                        "threshold": ctx.ppl_min,
+                        "attempts": ctx.ppl_retry,
+                    }
+                )
+            if ctx.ppl_retry > 0:
+                reason = f"重写 {ctx.ppl_retry} 次仍未达标"
+            else:
+                reason = "未重写"
             warnings.append(
-                f"第 {index + 1} 段有 {len(low)} 句困惑度低于 {ctx.ppl_min:g}，重写 {ctx.ppl_retry} 次仍未达标"
+                f"第 {index + 1} 段有 {len(low)} 句困惑度低于 {ctx.ppl_min:g}，{reason}"
             )
             return current
         try:
@@ -283,6 +305,7 @@ async def _rewrite_one(
     warnings: list[str],
     semaphore: asyncio.Semaphore,
     pause_event: asyncio.Event | None = None,
+    ppl_issues: list[dict] | None = None,
 ) -> ParagraphResult:
     async with semaphore:
         if pause_event is not None:
@@ -450,7 +473,17 @@ async def _rewrite_one(
             current = await asyncio.to_thread(engine.audit, current, options)
 
         current = await _enforce_perplexity(
-            index, paragraph, current, ctx, llm, llm_ctx, warnings, masked, protector, spans
+            index,
+            paragraph,
+            current,
+            ctx,
+            llm,
+            llm_ctx,
+            warnings,
+            masked,
+            protector,
+            spans,
+            ppl_issues if ppl_issues is not None else [],
         )
 
         restored = protector.restore(current, spans)
@@ -475,7 +508,11 @@ async def _rewrite_one(
         )
 
 
-def _build_response(results: list[ParagraphResult], warnings: list[str]) -> RewriteResponse:
+def _build_response(
+    results: list[ParagraphResult],
+    warnings: list[str],
+    ppl_issues: list[dict] | None = None,
+) -> RewriteResponse:
     original_chars = sum(len(r.original) for r in results)
     rewritten_chars = sum(len(r.rewritten) for r in results)
     paragraphs = len(results)
@@ -491,6 +528,7 @@ def _build_response(results: list[ParagraphResult], warnings: list[str]) -> Rewr
         rewritten_text=join_paragraphs([r.rewritten for r in results]),
         stats=stats,
         warnings=warnings,
+        ppl_issues=[PPLIssue(**item) for item in (ppl_issues or [])],
     )
 
 
@@ -507,13 +545,14 @@ async def rewrite_document(
         return _build_response([], ["没有解析到任何段落，请检查输入内容"])
 
     warnings: list[str] = []
+    ppl_issues: list[dict] = []
     if ctx.use_llm and (llm is None or not llm.configured):
         raise LLMError("改写需要规则 + LLM 混合执行，请先在 LLM 设置页配置 Base URL、模型和 API Key")
 
     semaphore = asyncio.Semaphore(max(1, ctx.concurrency))
     tasks = [
         asyncio.create_task(
-            _rewrite_one(i, p, ctx, rules, llm, warnings, semaphore, pause_event)
+            _rewrite_one(i, p, ctx, rules, llm, warnings, semaphore, pause_event, ppl_issues)
         )
         for i, p in enumerate(paragraphs)
     ]
@@ -526,7 +565,7 @@ async def rewrite_document(
             await emit(result)
 
     ordered = [r for r in results if r is not None]
-    response = _build_response(ordered, warnings)
+    response = _build_response(ordered, warnings, ppl_issues)
     audit_result = await asyncio.to_thread(
         audit_text,
         response.rewritten_text,

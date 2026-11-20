@@ -16,6 +16,7 @@ class Job:
     stats: dict | None = None
     audit: dict | None = None
     warnings: list[str] = field(default_factory=list)
+    ppl_issues: list[dict] = field(default_factory=list)
     error: str | None = None
     created_at: float = field(default_factory=time.time)
     finished_at: float | None = None

@@ -244,6 +244,7 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
                 "stats": None,
                 "audit": None,
                 "warnings": [],
+                "ppl_issues": [],
             }
             _update_job_db(
                 job.db_id,
@@ -259,12 +260,14 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
         job.stats = response.stats.model_dump()
         job.audit = response.audit.model_dump() if response.audit else None
         job.warnings = list(response.warnings)
+        job.ppl_issues = [item.model_dump() for item in response.ppl_issues]
         job.status = "done"
         payload = {
             "paragraphs": [p.model_dump() for p in response.paragraphs],
             "stats": response.stats.model_dump(),
             "audit": response.audit.model_dump() if response.audit else None,
             "warnings": response.warnings,
+            "ppl_issues": [item.model_dump() for item in response.ppl_issues],
         }
         _update_job_db(
             job.db_id,
@@ -325,6 +328,7 @@ def get_rewrite_job(job_id: str):
         "stats": job.stats,
         "audit": job.audit,
         "warnings": job.warnings,
+        "ppl_issues": job.ppl_issues,
         "error": job.error,
     }
 

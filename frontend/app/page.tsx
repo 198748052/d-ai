@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiGet, exportDocument, fetchRewriteJob, startRewriteJob } from "@/lib/api";
 import type {
   AuditResult,
+  PPLIssue,
   ParagraphResult,
   Preset,
   RewriteJobStatus,
@@ -44,6 +45,7 @@ export default function WorkspacePage() {
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [rewrittenText, setRewrittenText] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [pplIssues, setPplIssues] = useState<PPLIssue[]>([]);
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -84,6 +86,7 @@ export default function WorkspacePage() {
     setRunning(true);
     setError("");
     setWarnings([]);
+    setPplIssues([]);
     setParagraphs([]);
     setStats(null);
     setAudit(null);
@@ -113,6 +116,7 @@ export default function WorkspacePage() {
 
         setParagraphs(job.paragraphs);
         setWarnings(job.warnings ?? []);
+        setPplIssues(job.ppl_issues ?? []);
 
         if (job.status === "done") {
           setStats(job.stats);
@@ -253,6 +257,27 @@ export default function WorkspacePage() {
               ))}
             </ul>
           </details>
+        </div>
+      )}
+
+      {pplIssues.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="font-medium">
+            以下 {pplIssues.length} 句重写后困惑度仍未达标，建议手动修改：
+          </p>
+          <ul className="mt-2 space-y-2">
+            {pplIssues.map((item, index) => (
+              <li
+                key={`${item.paragraph}-${index}`}
+                className="rounded-md border border-amber-200 bg-white/60 px-3 py-2 text-xs"
+              >
+                <div className="mb-1 text-amber-700">
+                  第 {item.paragraph} 段 · 困惑度 {item.perplexity}（阈值 {item.threshold}）
+                </div>
+                <div className="select-text text-ink-800">{item.sentence}</div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

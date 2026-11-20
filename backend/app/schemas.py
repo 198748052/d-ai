@@ -60,11 +60,20 @@ class AuditRequest(BaseModel):
     lexicon_scope: str = "academic"
 
 
+class PPLIssue(BaseModel):
+    paragraph: int
+    sentence: str
+    perplexity: float
+    threshold: float
+    attempts: int
+
+
 class RewriteResponse(BaseModel):
     paragraphs: list[ParagraphResult]
     rewritten_text: str
     stats: RewriteStats
     warnings: list[str] = Field(default_factory=list)
+    ppl_issues: list[PPLIssue] = Field(default_factory=list)
     audit: Optional[AuditResult] = None
 
 
