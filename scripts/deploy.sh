@@ -10,7 +10,7 @@
 # Optional env:
 #   INSTALL_DIR=/opt/ai-rewrite   where the repo lives / will be cloned
 #   REPO_URL=<git url>            repository to clone when not inside one
-#   PORT=3000                     frontend port
+#   PORT=18437                    frontend port
 #   SERVICE_NAME=ai-rewrite       systemd unit name
 #   INSTALL_LOCAL_MODEL=0         skip torch/transformers (perplexity feature disabled)
 #   GITHUB_WEBHOOK_SECRET=xx      enable GitHub push webhook
@@ -19,7 +19,7 @@ set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/198748052/d-ai.git}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/ai-rewrite}"
-PORT="${PORT:-3000}"
+PORT="${PORT:-18437}"
 SERVICE_NAME="${SERVICE_NAME:-ai-rewrite}"
 INSTALL_LOCAL_MODEL="${INSTALL_LOCAL_MODEL:-1}"
 SKIP_INSTALL="${SKIP_INSTALL:-0}"
@@ -179,6 +179,7 @@ elif [ "$NO_SERVICE" != "1" ] && [ "$(id -u)" -eq 0 ] && need_cmd systemctl; the
     echo "RestartSec=5"
     echo "Environment=PATH=$SERVICE_PATH"
     echo "Environment=FRONTEND_PORT=$PORT"
+    echo "Environment=BACKEND_PORT=${BACKEND_PORT:-18438}"
     echo "Environment=LOCAL_MODEL=$LOCAL_MODEL"
     echo "Environment=LOCAL_ENABLED=$LOCAL_ENABLED"
     if [ -n "${GITHUB_WEBHOOK_SECRET:-}" ]; then

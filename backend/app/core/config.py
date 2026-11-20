@@ -22,6 +22,6 @@ DEFAULT_LOCAL_DTYPE = os.getenv("LOCAL_DTYPE", "float16")
 DEFAULT_LOCAL_ENABLED = os.getenv("LOCAL_ENABLED", "0").strip() in {"1", "true", "yes"}
 
 CORS_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "http://localhost:18437",
+    "http://127.0.0.1:18437",
 ]

@@ -7,8 +7,8 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 RUN_DIR="$ROOT/.run"
 mkdir -p "$RUN_DIR"
 
-BACKEND_PORT="${BACKEND_PORT:-8000}"
-FRONTEND_PORT="${FRONTEND_PORT:-3000}"
+BACKEND_PORT="${BACKEND_PORT:-18438}"
+FRONTEND_PORT="${FRONTEND_PORT:-18437}"
 
 stop_existing() {
   for name in backend frontend; do

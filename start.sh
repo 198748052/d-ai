@@ -8,8 +8,8 @@ if [ ! -d frontend/node_modules ]; then
   (cd frontend && npm install --no-audit --no-fund)
 fi
 
-echo "[start] backend on :8000"
-(cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000) &
+echo "[start] backend on :18438"
+(cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 18438) &
 BACKEND_PID=$!
 
 cleanup() {
@@ -17,6 +17,6 @@ cleanup() {
 }
 trap cleanup EXIT INT TERM
 
-echo "[start] frontend on :3000"
+echo "[start] frontend on :18437"
 cd frontend
 npm run dev

@@ -38,8 +38,8 @@ This file records user instructions, preferences, and project knowledge for futu
 - Context: 降 AI 味改写平台开发
 - Category: Build Methods / Operations
 - Instructions:
-  - 后端：`cd /workspace/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000`
-  - 前端开发：`cd /workspace/frontend && npm run dev`（端口 3000）
+  - 后端：`cd /workspace/backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 18438`
+  - 前端开发：`cd /workspace/frontend && npm run dev`（端口 18437）
   - 前端预览现用生产模式：`npm run build` 后 `npm start`；改完代码需要重新 build 再重启
   - 一键部署：`sudo bash -c "$(curl -fsSL https://raw.githubusercontent.com/198748052/d-ai/main/scripts/deploy.sh)"`；自动克隆到 /opt/ai-rewrite、建 venv、装依赖、构建前端、写 systemd 服务
   - 本地模型统一用 `Qwen/Qwen2.5-1.5B`（float16 约 3.5G），8G 机器可跑；部署脚本默认 LOCAL_ENABLED=1 并在首次启动时下载
@@ -49,8 +49,8 @@ This file records user instructions, preferences, and project knowledge for futu
   - 可配置 GitHub webhook：`POST /api/webhooks/github`，环境变量 `GITHUB_WEBHOOK_SECRET`，仅处理 main 分支 push
   - 预览环境带宽约 500KB/s，dev 模式 main-app.js 有 6MB（eval-source-map），首屏要 10s+；生产包约 460KB，首屏 0.2s
   - 一键启动：`/workspace/start.sh`
-  - 前端 `next.config.js` 把 `/api/*` 反代到 `http://127.0.0.1:8000`
-  - 预览地址：`https://3000-8cc70a671b4b3627.monkeycode-ai.online`
+  - 前端 `next.config.js` 把 `/api/*` 反代到 `http://127.0.0.1:18438`
+  - 预览地址：`https://18437-8cc70a671b4b3627.monkeycode-ai.online`
   - Next dev 首次访问新页面编译可能 1-2 分钟，属于正常现象
 
 ### 本地模型
