@@ -68,6 +68,9 @@ This file records user instructions, preferences, and project knowledge for futu
   - SQLModel 要求时间字段带时区：必须用 `datetime.now(timezone.utc)`；`datetime.utcnow()` 会导致插入失败
   - 改写任务走 `POST /api/rewrite/jobs`，前端轮询 `GET /api/rewrite/jobs/{job_id}`
   - LLM 偶发返回空内容，已加 3 次重试；异常长度或重复结果会被清理或回退
+  - 空内容根因：该网关模型带推理，`reasoning_tokens` 会吃满 `max_tokens`（4096），触发 `finish_reason=length` 且 `content` 为空；节奏调整提示词最重，最容易命中
+  - 复现方式：直接 POST `/chat/completions` 打印 `finish_reason`、`usage.completion_tokens_details.reasoning_tokens`、`content` 长度
+  - 排查结论：重试沿用相同参数，3 次可能全部失败；需要按 `finish_reason=length` 单独处理（提高 max_tokens 或降低推理消耗）
 
 ### Git 与推送
 - Date: 2026-11-19
