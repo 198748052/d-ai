@@ -254,16 +254,36 @@ async def _enforce_perplexity(
         if not low:
             return current
         if attempt >= ctx.ppl_retry:
+            from ..local_model import clause_perplexities
+
             for item in low:
-                severe = item["perplexity"] < ctx.ppl_severe
-                record_lesson(
-                    style=ctx.style,
-                    sentence=item["sentence"],
-                    original=original,
-                    perplexity=item["perplexity"],
-                    threshold=ctx.ppl_min,
-                    note="严重：重写后仍远低于困惑度阈值" if severe else "重写后仍低于困惑度阈值",
-                )
+                targets = [item]
+                try:
+                    clauses = await asyncio.to_thread(
+                        clause_perplexities, item["sentence"], 12
+                    )
+                except Exception:  # noqa: BLE001
+                    clauses = []
+                picked = [
+                    clause
+                    for clause in clauses
+                    if clause["perplexity"] < ctx.ppl_min
+                ]
+                if picked:
+                    picked.sort(key=lambda clause: clause["perplexity"])
+                    targets = picked[:2]
+                for target in targets:
+                    severe = target["perplexity"] < ctx.ppl_severe
+                    record_lesson(
+                        style=ctx.style,
+                        sentence=target["sentence"],
+                        original=original,
+                        perplexity=target["perplexity"],
+                        threshold=ctx.ppl_min,
+                        note="严重：重写后仍远低于困惑度阈值"
+                        if severe
+                        else "重写后仍低于困惑度阈值",
+                    )
             for item in low:
                 ppl_issues.append(
                     {

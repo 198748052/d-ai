@@ -96,6 +96,7 @@ This file records user instructions, preferences, and project knowledge for futu
   - 当前测试管理员账号 `admin@example.com`，密码需用户自行修改；不要再把密码写入仓库
   - 任务记录按 `rewrite_job.user_id` 隔离，历史无归属任务仅管理员可见
   - 设置页 `/settings/llm`、规则库写入、预设写入、踩坑记录删除均要求管理员
+  - 踩坑记录按小句（逗号/分号/冒号切分）落库，每句最多取 2 个低困惑度小句，避免整段长句
 
 ### 用户偏好
 - Date: 2026-11-19

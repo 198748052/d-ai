@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import math
+import re
 import os
 import threading
 from pathlib import Path
@@ -177,21 +178,18 @@ def unload_model() -> None:
     gc.collect()
 
 
-def sentence_perplexities(text: str, max_sentences: int = 40) -> list[dict]:
+def _score(texts: list[str]) -> list[dict]:
     if _model is None or _tokenizer is None:
         raise RuntimeError("本地模型尚未加载")
 
-    from .segmenter import split_sentences
-
     import torch
 
-    sentences = [item for item in split_sentences(text) if item.strip()][:max_sentences]
     results: list[dict] = []
     with _lock:
         with torch.no_grad():
-            for sentence in sentences:
+            for text in texts:
                 inputs = _tokenizer(
-                    sentence,
+                    text,
                     return_tensors="pt",
                     truncation=True,
                     max_length=256,
@@ -203,12 +201,30 @@ def sentence_perplexities(text: str, max_sentences: int = 40) -> list[dict]:
                 perplexity = math.exp(min(loss, 20))
                 results.append(
                     {
-                        "sentence": sentence,
+                        "sentence": text,
                         "perplexity": round(perplexity, 2),
                         "tokens": int(inputs["input_ids"].shape[1]),
                     }
                 )
     return results
+
+
+def sentence_perplexities(text: str, max_sentences: int = 40) -> list[dict]:
+    from .segmenter import split_sentences
+
+    sentences = [item for item in split_sentences(text) if item.strip()][:max_sentences]
+    return _score(sentences)
+
+
+_CLAUSE_BOUNDARY = re.compile(r"(?<=[，,；;：:])")
+
+
+def clause_perplexities(text: str, max_clauses: int = 20, min_chars: int = 10) -> list[dict]:
+    clauses = [item.strip() for item in _CLAUSE_BOUNDARY.split(text or "") if item.strip()]
+    clauses = [item for item in clauses if len(item) >= min_chars][:max_clauses]
+    if not clauses:
+        return []
+    return _score(clauses)
 
 
 def summarize(text: str, max_sentences: int = 40, low_threshold: float = 50.0) -> dict:
