@@ -580,18 +580,18 @@
     {
       "pattern": "对([^，。；]{1,20})进行([^，。；的]{1,10})(?=[，。；！？、]|$)",
       "replacements": [
-        "对\\1进行\\2"
+        "\\2\\1"
       ],
-      "severity": "low",
-      "note": "名词化"
+      "severity": "medium",
+      "note": "名词化套句（改为直接动宾）"
     },
     {
       "pattern": "进行(?!中|了|着|过|曲|时|性)([^，。；的]{1,8})(?=[，。；！？、]|$)",
       "replacements": [
-        "进行\\1"
+        "\\1"
       ],
-      "severity": "low",
-      "note": "名词化"
+      "severity": "medium",
+      "note": "名词化套句"
     },
     {
       "pattern": "为([^，。；]{1,20})注入了([^，。；]{1,20})",
@@ -1472,6 +1472,110 @@
       ],
       "severity": "high",
       "note": "空洞结尾"
+    },
+    {
+      "pattern": "之所以([^。！？]{1,40})是因为",
+      "replacements": [
+        "\\1，原因是"
+      ],
+      "severity": "medium",
+      "note": "因果链套句"
+    },
+    {
+      "pattern": "正是因为([^。！？]{1,30})[，,]?所以",
+      "replacements": [
+        "\\1，因此"
+      ],
+      "severity": "medium",
+      "note": "因果链套句"
+    },
+    {
+      "pattern": "鉴于([^。！？]{1,30})[，,]?故而",
+      "replacements": [
+        "\\1，因此"
+      ],
+      "severity": "medium",
+      "note": "因果链套句"
+    },
+    {
+      "pattern": "之所以([^。！？]{1,40})在于",
+      "replacements": [
+        "\\1的原因在于"
+      ],
+      "severity": "medium",
+      "note": "因果链套句"
+    },
+    {
+      "pattern": "对([^，。；]{1,20})加以([^，。；的]{1,10})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\2\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化套句"
+    },
+    {
+      "pattern": "对([^，。；]{1,20})作出([^，。；的]{1,10})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\2\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化套句"
+    },
+    {
+      "pattern": "对([^，。；]{1,20})开展([^，。；的]{1,10})(?=[，。；！？、]|$)",
+      "replacements": [
+        "\\2\\1"
+      ],
+      "severity": "medium",
+      "note": "名词化套句"
+    },
+    {
+      "pattern": "这使(?:得)?([^。！？]{1,25})成为可能",
+      "replacements": [
+        "\\1因此可行"
+      ],
+      "severity": "medium",
+      "note": "翻译腔套句"
+    },
+    {
+      "pattern": "从([^，。；]{1,15})的角度来看",
+      "replacements": [
+        "\\1显示，"
+      ],
+      "severity": "medium",
+      "note": "翻译腔三段"
+    },
+    {
+      "pattern": "这一(问题|挑战|现象|趋势|过程|机制)",
+      "replacements": [
+        "该\\1"
+      ],
+      "severity": "medium",
+      "note": "这一X指代链"
+    },
+    {
+      "pattern": "(?:[^。！？；，、]{1,16}、){4,}[^。！？；，、]{1,16}",
+      "replacements": [
+        "\\g<0>"
+      ],
+      "severity": "medium",
+      "note": "顿号堆叠"
+    },
+    {
+      "pattern": "(?:[^，。；！？\\s]{1,12}的){3,}[^，。；！？\\s]{0,12}",
+      "replacements": [
+        "\\g<0>"
+      ],
+      "severity": "medium",
+      "note": "长定语堆叠"
+    },
+    {
+      "pattern": "[^。！？\\n]{0,30}的。",
+      "replacements": [
+        "\\g<0>"
+      ],
+      "severity": "medium",
+      "note": "的字收尾"
     }
   ]
 }

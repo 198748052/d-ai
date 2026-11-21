@@ -51,6 +51,9 @@ class AuditResult(BaseModel):
     total: int
     items: list[AuditItem] = Field(default_factory=list)
     metrics: dict = Field(default_factory=dict)
+    diagnosis: dict = Field(default_factory=dict)
+    diagnosis_before: dict = Field(default_factory=dict)
+    diagnosis_compare: dict = Field(default_factory=dict)
 
 
 class AuditRequest(BaseModel):

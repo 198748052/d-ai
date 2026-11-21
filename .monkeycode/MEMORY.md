@@ -134,3 +134,13 @@ This file records user instructions, preferences, and project knowledge for futu
   - 避免过度润色和过于工整的短句；要长短句交错、允许适度冗余和限定语
   - 改写后必须做 AI 特征审计；任务记录要能复制、暂停/继续、支持移动端
   - 本地模型文件不能因重启丢失，必须自动从缓存加载
+
+### 规则库与降 AI 味机制
+- Date: 2026-11-21
+- Category: Build Methods / Testing Methods
+- Instructions:
+  - 规则数据在 `backend/app/data/`：`lexicons/*.json`、`patterns/*.json`、`context_whitelist.json`、`replacement_blacklist.json`
+  - 规则 JSON 改动后必须重启后端，启动时 `seed()` 才会同步到 SQLite 的 `feature_rule` 表
+  - 后端测试：`cd /workspace/backend && python3 -m unittest tests.test_anti_ai_rules -q`
+  - 前端类型检查：`cd /workspace/frontend && npx tsc --noEmit`
+  - 前端改了页面后需要 `npm run build` 再重启服务，`next start` 不会自动读取源码改动

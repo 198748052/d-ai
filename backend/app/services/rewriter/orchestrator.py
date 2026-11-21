@@ -21,7 +21,17 @@ from ...schemas import (
 from ..protector import Protector
 from ..segmenter import join_paragraphs, split_paragraphs, split_sentences
 from .audit import audit_text, collect_hits
-from .features import ai_likeness, analyze, paragraph_metrics, uniform_runs
+from .context_guard import ReplacementGuard, Whitelist, load_blacklist, load_whitelist
+from .diagnosis import compare as compare_diagnosis
+from .diagnosis import diagnose
+from .features import analyze, paragraph_metrics, uniform_runs
+from .guards import (
+    acceptable,
+    clean_candidate,
+    merge_short_runs,
+    quality_compare,
+)
+from .leakage import clean as clean_leakage
 from .lessons import recent_lessons, record_lesson
 from .llm_engine import LLMContext, LLMEngine, LLMError
 from .rule_engine import RewriteOptions, Rule, RuleEngine
@@ -40,37 +50,13 @@ def _is_heading(text: str) -> bool:
 
 
 
-def _has_duplication(text: str, window: int = 40, step: int = 10) -> bool:
-    seen: set[str] = set()
-    for index in range(0, max(1, len(text) - window), step):
-        chunk = text[index : index + window]
-        if chunk in seen:
-            return True
-        seen.add(chunk)
-    return False
-
-
-
 def _clean_candidate(original: str, candidate: str) -> str:
-    text = (candidate or "").strip()
-    if not text:
-        return text
-    if original and original in text and len(text) > len(original) * 1.2:
-        text = text.replace(original, "", 1).strip()
-    half = len(text) // 2
-    if half > 20 and text[:half].strip() == text[half:].strip():
-        text = text[:half].strip()
-    return text
+    return clean_candidate(original, candidate)
 
 
 def _acceptable(original: str, candidate: str, max_ratio: float = 1.5, min_ratio: float = 0.6) -> bool:
-    if not candidate or not candidate.strip():
-        return False
-    ratio = len(candidate) / max(1, len(original))
-    delta = abs(len(candidate) - len(original))
-    if delta > 30 and (ratio > max_ratio or ratio < min_ratio):
-        return False
-    return not _has_duplication(candidate)
+    ok, _reason = acceptable(original, candidate, max_ratio=max_ratio, min_ratio=min_ratio)
+    return ok
 
 
 def _chunk_sentences(text: str, max_chars: int = 200, max_sentences: int = 3) -> list[str]:
@@ -115,6 +101,9 @@ class RewriteContext:
     ppl_retry: int = 2
     ppl_severe: float = 25.0
     lessons: list[str] = field(default_factory=list)
+    whitelist: Whitelist | None = None
+    guard: ReplacementGuard | None = None
+    diagnosis_before: dict = field(default_factory=dict)
 
 
 def load_rules(session: Session, lexicon_scope: str, style: str = "general") -> list[Rule]:
@@ -205,6 +194,13 @@ def build_context(req: RewriteRequest, session: Session) -> RewriteContext:
         ctx.ppl_severe = float(getattr(setting, "ppl_severe", 25.0) or 25.0)
     ctx.lessons = recent_lessons(ctx.style)
 
+    ctx.whitelist = load_whitelist()
+    ctx.guard = ReplacementGuard(load_blacklist())
+    # 固定搭配整体占位保护，避免把“生态环境/控制闭环/数字化转型”机械替换掉。
+    ctx.protect_terms = list(
+        dict.fromkeys(ctx.protect_terms + ctx.whitelist.protect_terms())
+    )
+
     ctx.mode = "hybrid"
     ctx.use_rule_engine = True
     ctx.use_llm = True
@@ -236,6 +232,7 @@ async def _enforce_perplexity(
     spans: list[str],
     ppl_issues: list[dict],
     audit_engine: RuleEngine,
+    whitelist: Whitelist | None = None,
 ) -> str:
     """Regenerate sentences whose local-model perplexity is too low."""
     if not ctx.use_local_model or llm is None or llm_ctx is None or len(current) < 60:
@@ -313,7 +310,9 @@ async def _enforce_perplexity(
         candidate = _clean_candidate(current, candidate)
         if not _acceptable(current, candidate, max_ratio=1.25, min_ratio=0.75):
             continue
-        if len(collect_hits(candidate, audit_engine)) > len(collect_hits(current, audit_engine)):
+        if len(collect_hits(candidate, audit_engine, whitelist=whitelist)) > len(
+            collect_hits(current, audit_engine, whitelist=whitelist)
+        ):
             continue
         current = candidate
     return current
@@ -343,11 +342,19 @@ async def _rewrite_one(
                 metrics={},
             )
 
+        source, leak_hits = clean_leakage(paragraph)
+        if leak_hits:
+            warnings.append(
+                f"第 {index + 1} 段清除了 {len(leak_hits)} 类过程痕迹："
+                + "、".join(item["category"] for item in leak_hits)
+            )
+        diag_before = diagnose(source, ctx.style)
+
         protector = Protector(ctx.protect_terms)
-        masked, spans = protector.protect(paragraph)
+        masked, spans = protector.protect(source)
         current = masked
-        engine = RuleEngine(rules)
-        audit_engine = RuleEngine(rules)
+        engine = RuleEngine(rules, ctx.whitelist, ctx.guard)
+        audit_engine = RuleEngine(rules, ctx.whitelist, ctx.guard)
         options = RewriteOptions(
             strength=ctx.strength,
             style=ctx.style,
@@ -371,6 +378,8 @@ async def _rewrite_one(
                 banned_words=ctx.banned_words,
                 extra_prompt=ctx.extra_prompt,
                 lessons=list(ctx.lessons),
+                issues=list(diag_before.get("issues") or []),
+                plan=list(diag_before.get("plan") or []),
             )
             academic = ctx.style in {"academic", "official"}
             chunks = _chunk_sentences(
@@ -381,7 +390,7 @@ async def _rewrite_one(
             rewritten_chunks: list[str] = []
             for chunk in chunks:
                 piece = chunk
-                hits = collect_hits(piece, audit_engine)
+                hits = collect_hits(piece, audit_engine, whitelist=ctx.whitelist)
                 for round_index in range(ctx.max_rounds):
                     try:
                         candidate = await llm.rewrite_paragraph(
@@ -404,14 +413,14 @@ async def _rewrite_one(
                         continue
                     piece = candidate
                     llm_used = True
-                    hits = collect_hits(piece, audit_engine)
+                    hits = collect_hits(piece, audit_engine, whitelist=ctx.whitelist)
                     if not hits:
                         break
                 rewritten_chunks.append(piece)
             current = "".join(rewritten_chunks)
 
             for check_index in range(2):
-                remaining = collect_hits(current, audit_engine)
+                remaining = collect_hits(current, audit_engine, whitelist=ctx.whitelist)
                 if not remaining:
                     break
                 try:
@@ -443,6 +452,14 @@ async def _rewrite_one(
                         issues.append("连续三句开头相同，改掉其中两句")
                     if pmetrics["hedge_count"] == 0:
                         issues.append("缺少限定表述，至少加一处")
+                    structure = diag_before.get("structure") or {}
+                    if structure.get("short_run", 0) > 0:
+                        issues.append("连续短句过多，合并其中一两句")
+                    if structure.get("long_nested", 0) > 0:
+                        issues.append("长句嵌套过深，在语义切换点断句")
+                    for item in (diag_before.get("issues") or [])[:3]:
+                        if item not in issues:
+                            issues.append(item)
                     if metrics.get("cv", 0) >= 0.42 and not runs and not issues:
                         break
                     try:
@@ -470,7 +487,7 @@ async def _rewrite_one(
                         break
                     current = candidate
 
-                remaining = collect_hits(current, audit_engine)
+                remaining = collect_hits(current, audit_engine, whitelist=ctx.whitelist)
                 if remaining:
                     try:
                         candidate = await llm.correct_paragraph(current, remaining, llm_ctx)
@@ -484,8 +501,8 @@ async def _rewrite_one(
                     adjusted = await asyncio.to_thread(engine.post_rhythm, current, 0.5)
                     if adjusted != current:
                         after_metrics = analyze(adjusted)
-                        old_hits = len(collect_hits(current, audit_engine))
-                        new_hits = len(collect_hits(adjusted, audit_engine))
+                        old_hits = len(collect_hits(current, audit_engine, whitelist=ctx.whitelist))
+                        new_hits = len(collect_hits(adjusted, audit_engine, whitelist=ctx.whitelist))
                         if (
                             after_metrics.get("cv", 0) > before_metrics.get("cv", 0)
                             and new_hits <= old_hits
@@ -497,7 +514,7 @@ async def _rewrite_one(
 
         current = await _enforce_perplexity(
             index,
-            paragraph,
+            source,
             current,
             ctx,
             llm,
@@ -508,17 +525,18 @@ async def _rewrite_one(
             spans,
             ppl_issues if ppl_issues is not None else [],
             audit_engine,
+            ctx.whitelist,
         )
 
         if llm is not None and llm_ctx is not None:
-            remaining = collect_hits(current, audit_engine)
+            remaining = collect_hits(current, audit_engine, whitelist=ctx.whitelist)
             if remaining:
                 try:
                     candidate = await llm.correct_paragraph(current, remaining, llm_ctx)
                     if (
                         LLMEngine.placeholders_intact(masked, candidate)
                         and _acceptable(current, candidate)
-                        and len(collect_hits(candidate, audit_engine))
+                        and len(collect_hits(candidate, audit_engine, whitelist=ctx.whitelist))
                         <= len(remaining)
                     ):
                         current = candidate
@@ -526,16 +544,37 @@ async def _rewrite_one(
                     pass
 
         restored = protector.restore(current, spans)
+        restored, leak_after = clean_leakage(restored)
+        if leak_after:
+            warnings.append(f"第 {index + 1} 段改写后又出现过程痕迹，已再次清除")
         if not restored.strip():
-            restored = paragraph
+            restored = source
             warnings.append(f"第 {index + 1} 段改写结果为空，已保留原文")
 
-        if not llm_used and restored != paragraph:
-            before = ai_likeness(analyze(paragraph))
-            after = ai_likeness(analyze(restored))
-            if after > before + 0.5:
-                warnings.append(f"第 {index + 1} 段改写后特征未改善，已保留原文")
-                restored = paragraph
+        diag_after = diagnose(restored, ctx.style)
+        quality = quality_compare(diag_before, diag_after)
+        if "新增连续短句" in quality["regressions"]:
+            merged = merge_short_runs(restored)
+            if merged != restored:
+                merged_diag = diagnose(merged, ctx.style)
+                if merged_diag["total_per_1000"] <= diag_after["total_per_1000"]:
+                    restored = merged
+                    diag_after = merged_diag
+                    quality = quality_compare(diag_before, diag_after)
+
+        # 反回归：改写把总特征密度显著推高时，保留原文更安全。
+        if diag_after["total_per_1000"] > diag_before["total_per_1000"] + 1.5:
+            warnings.append(f"第 {index + 1} 段改写后 AI 特征密度上升，已保留原文")
+            restored = source
+            diag_after = diag_before
+            quality = quality_compare(diag_before, diag_after)
+
+        metrics = paragraph_metrics(restored)
+        metrics["ai_per_1000"] = diag_after.get("total_per_1000")
+        metrics["dominant"] = diag_after.get("dominant_label")
+        metrics["diagnosis_issues"] = [
+            item.get("label") for item in (diag_after.get("plan") or [])[:4]
+        ]
 
         return ParagraphResult(
             index=index,
@@ -543,7 +582,7 @@ async def _rewrite_one(
             rewritten=restored,
             changed_ratio=_changed_ratio(paragraph, restored),
             length_ratio=_length_ratio(paragraph, restored),
-            metrics=paragraph_metrics(restored),
+            metrics=metrics,
         )
 
 
@@ -579,14 +618,23 @@ async def rewrite_document(
     emit: EmitFn | None = None,
     pause_event: asyncio.Event | None = None,
 ) -> RewriteResponse:
-    paragraphs = split_paragraphs(text)
-    if not paragraphs:
-        return _build_response([], ["没有解析到任何段落，请检查输入内容"])
-
     warnings: list[str] = []
     ppl_issues: list[dict] = []
     if ctx.use_llm and (llm is None or not llm.configured):
         raise LLMError("改写需要规则 + LLM 混合执行，请先在 LLM 设置页配置 Base URL、模型和 API Key")
+
+    # Stage 4 前置：先把过程痕迹清掉，避免被当成正文改写或计费。
+    cleaned_text, doc_leaks = clean_leakage(text)
+    if doc_leaks:
+        warnings.append(
+            "全文清除了过程痕迹："
+            + "、".join(item["category"] for item in doc_leaks)
+        )
+    ctx.diagnosis_before = diagnose(cleaned_text, ctx.style)
+
+    paragraphs = split_paragraphs(cleaned_text)
+    if not paragraphs:
+        return _build_response([], warnings or ["没有解析到任何段落，请检查输入内容"])
 
     semaphore = asyncio.Semaphore(max(1, ctx.concurrency))
     tasks = [
@@ -608,8 +656,21 @@ async def rewrite_document(
     audit_result = await asyncio.to_thread(
         audit_text,
         response.rewritten_text,
-        RuleEngine(rules),
+        RuleEngine(rules, ctx.whitelist, ctx.guard),
         use_local=ctx.use_local_model,
+        whitelist=ctx.whitelist,
+        context=ctx.style,
     )
+    audit_result["diagnosis_before"] = ctx.diagnosis_before
+    audit_result["diagnosis_compare"] = compare_diagnosis(
+        ctx.diagnosis_before, audit_result.get("diagnosis") or {}
+    )
+    comparison = audit_result["diagnosis_compare"]
+    if not comparison["improved"] and ctx.diagnosis_before.get("chars"):
+        response.warnings.append("全文 AI 特征密度未下降，建议补充具体数据或人工复核")
+    elif comparison["improved"] and comparison["drop_ratio"] < 0.1:
+        response.warnings.append(
+            "本轮 AI 特征降幅不足 10%，继续改写收益有限，建议先人工复核"
+        )
     response.audit = AuditResult(**audit_result)
     return response

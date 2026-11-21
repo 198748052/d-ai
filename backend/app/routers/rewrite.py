@@ -461,4 +461,10 @@ def audit(req: AuditRequest, session: Session = Depends(get_session)):
     )
     ctx = build_context(rewrite_req, session)
     rules = load_rules(session, ctx.lexicon_scope, ctx.style)
-    return audit_text(req.text, RuleEngine(rules), use_local=ctx.use_local_model)
+    return audit_text(
+        req.text,
+        RuleEngine(rules, ctx.whitelist, ctx.guard),
+        use_local=ctx.use_local_model,
+        whitelist=ctx.whitelist,
+        context=ctx.style,
+    )

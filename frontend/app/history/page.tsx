@@ -323,6 +323,15 @@ export default function HistoryPage() {
                     规则命中{" "}
                     <strong className="text-ink-900">{detail.result.audit.total}</strong>
                   </span>
+                  {detail.result.audit.diagnosis?.total_per_1000 !== undefined && (
+                    <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                      AI 味{" "}
+                      <strong className="text-ink-900">
+                        {detail.result.audit.diagnosis.total_per_1000}
+                      </strong>
+                      /千字
+                    </span>
+                  )}
                   {detail.result.audit.metrics.perplexity !== undefined && (
                     <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
                       困惑度{" "}

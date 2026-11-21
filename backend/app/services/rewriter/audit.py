@@ -3,13 +3,36 @@ from __future__ import annotations
 import re
 
 from ..segmenter import split_sentences
+from .context_guard import Whitelist, load_whitelist
+from .diagnosis import diagnose
 from .features import analyze
 from .rule_engine import RuleEngine
 
 SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 
 
-def audit_text(text: str, engine: RuleEngine, use_local: bool = False) -> dict:
+def _kept_matches(
+    matches: list[re.Match[str]],
+    text: str,
+    whitelist: Whitelist | None,
+) -> list[re.Match[str]]:
+    if whitelist is None:
+        return matches
+    return [
+        match
+        for match in matches
+        if not whitelist.is_protected(text, match.start(), match.end())
+    ]
+
+
+def audit_text(
+    text: str,
+    engine: RuleEngine,
+    use_local: bool = False,
+    whitelist: Whitelist | None = None,
+    context: str = "academic",
+) -> dict:
+    whitelist = whitelist or load_whitelist()
     items: list[dict] = []
     total = 0
 
@@ -27,6 +50,7 @@ def audit_text(text: str, engine: RuleEngine, use_local: bool = False) -> dict:
                 matches = list(re.finditer(rule.pattern, text, flags=re.MULTILINE))
         except re.error:
             continue
+        matches = _kept_matches(matches, text, whitelist)
         if matches:
             items.append(
                 {
@@ -42,7 +66,12 @@ def audit_text(text: str, engine: RuleEngine, use_local: bool = False) -> dict:
     for rule in engine.lexicon_rules:
         if not rule.pattern:
             continue
-        count = text.count(rule.pattern)
+        try:
+            matches = list(re.finditer(re.escape(rule.pattern), text))
+        except re.error:
+            matches = []
+        matches = _kept_matches(matches, text, whitelist)
+        count = len(matches)
         if count:
             items.append(
                 {
@@ -68,7 +97,14 @@ def audit_text(text: str, engine: RuleEngine, use_local: bool = False) -> dict:
             metrics["low_ppl_count"] = local["low_count"]
         except Exception:  # noqa: BLE001
             pass
-    return {"total": total, "items": items[:60], "metrics": metrics}
+
+    diagnosis = diagnose(text, context)
+    return {
+        "total": total,
+        "items": items[:60],
+        "metrics": metrics,
+        "diagnosis": diagnosis,
+    }
 
 
 def collect_hits(
@@ -76,9 +112,11 @@ def collect_hits(
     engine: RuleEngine,
     allowed: set[str] | None = None,
     limit: int = 30,
+    whitelist: Whitelist | None = None,
 ) -> list[dict]:
     """Return concrete rule hits with matched text, used to constrain the LLM."""
     allowed = allowed or {"high", "medium"}
+    whitelist = whitelist or load_whitelist()
     hits: list[dict] = []
 
     for rule in engine.regex_rules:
@@ -88,6 +126,7 @@ def collect_hits(
             matches = list(re.finditer(rule.pattern, text, flags=re.MULTILINE))
         except re.error:
             continue
+        matches = _kept_matches(matches, text, whitelist)
         if not matches:
             continue
         hits.append(
@@ -105,8 +144,12 @@ def collect_hits(
     for rule in engine.lexicon_rules:
         if rule.severity not in allowed or not rule.pattern:
             continue
-        count = text.count(rule.pattern)
-        if not count:
+        try:
+            matches = list(re.finditer(re.escape(rule.pattern), text))
+        except re.error:
+            continue
+        matches = _kept_matches(matches, text, whitelist)
+        if not matches:
             continue
         hits.append(
             {
@@ -114,7 +157,7 @@ def collect_hits(
                 "pattern": rule.pattern,
                 "matched": rule.pattern,
                 "severity": rule.severity,
-                "count": count,
+                "count": len(matches),
                 "note": rule.note or rule.pattern,
                 "replacements": rule.replacements,
             }
@@ -122,4 +165,3 @@ def collect_hits(
 
     hits.sort(key=lambda item: (SEVERITY_ORDER.get(item["severity"], 9), -item["count"]))
     return hits[:limit]
-

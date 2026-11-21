@@ -47,10 +47,52 @@ export interface AuditMetrics {
   low_ppl_count?: number;
 }
 
+export interface DiagnosisFlavor {
+  count: number;
+  per_1000: number;
+  terms?: string[];
+}
+
+export interface DiagnosisPlanItem {
+  priority: number;
+  code: string;
+  label: string;
+  action: string;
+  count?: number;
+}
+
+export interface DiagnosisResult {
+  context?: string;
+  context_label?: string;
+  chars?: number;
+  flavors?: Record<string, DiagnosisFlavor>;
+  dominant?: string;
+  dominant_label?: string;
+  total_per_1000?: number;
+  structure?: Record<string, number>;
+  issues?: string[];
+  leakage?: { id: string; category: string; count: number; matched: string; note: string }[];
+  plan?: DiagnosisPlanItem[];
+}
+
+export interface DiagnosisCompare {
+  before_total: number;
+  after_total: number;
+  drop: number;
+  drop_ratio: number;
+  before_dominant_label: string;
+  after_dominant_label: string;
+  improved: boolean;
+  reached_target: boolean;
+}
+
 export interface AuditResult {
   total: number;
   items: AuditItem[];
   metrics?: AuditMetrics;
+  diagnosis?: DiagnosisResult;
+  diagnosis_before?: DiagnosisResult;
+  diagnosis_compare?: DiagnosisCompare;
 }
 
 export interface PPLIssue {

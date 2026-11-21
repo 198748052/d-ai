@@ -575,11 +575,11 @@
     {
       "pattern": "闭环",
       "replacements": [
-        "完整流程",
-        "完整环节"
+        "反馈回路",
+        "反馈机制"
       ],
-      "severity": "medium",
-      "note": "抽象大词"
+      "severity": "high",
+      "note": "互联网黑话（按语境改为反馈机制）"
     },
     {
       "pattern": "链路",
@@ -1486,6 +1486,922 @@
       ],
       "severity": "medium",
       "note": "模板过渡"
+    },
+    {
+      "pattern": "生态",
+      "replacements": [
+        "协作关系",
+        "资源网络"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "壁垒",
+      "replacements": [
+        "障碍",
+        "门槛"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "心智",
+      "replacements": [
+        "认知"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "势能",
+      "replacements": [
+        "潜力",
+        "动能"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "纬度",
+      "replacements": [
+        "维度"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "对标",
+      "replacements": [
+        "参照",
+        "对比"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "打通",
+      "replacements": [
+        "衔接",
+        "贯通"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "下沉",
+      "replacements": [
+        "向基层延伸",
+        "扩展到基层"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "抢占",
+      "replacements": [
+        "争取",
+        "率先进入"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "破圈",
+      "replacements": [
+        "扩展到更广人群"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "出圈",
+      "replacements": [
+        "受到更广关注"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "体感",
+      "replacements": [
+        "主观感受",
+        "实际体验"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "触达",
+      "replacements": [
+        "覆盖",
+        "到达"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "调性",
+      "replacements": [
+        "风格",
+        "基调"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "完备",
+      "replacements": [
+        "完整"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "复盘",
+      "replacements": [
+        "回顾",
+        "总结"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "锚点",
+      "replacements": [
+        "参照点",
+        "基准"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "底座",
+      "replacements": [
+        "基础",
+        "底层支撑"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "战略高地",
+      "replacements": [
+        "关键领域"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "第二曲线",
+      "replacements": [
+        "新的增长方向"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "飞轮效应",
+      "replacements": [
+        "自我强化机制"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "深耕",
+      "replacements": [
+        "长期投入",
+        "持续研究"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "拉通",
+      "replacements": [
+        "协调",
+        "贯通"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "生态位",
+      "replacements": [
+        "定位"
+      ],
+      "severity": "high",
+      "note": "互联网黑话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "系统化",
+      "replacements": [
+        "系统地"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "结构化",
+      "replacements": [
+        "按结构组织"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "可视化",
+      "replacements": [
+        "用图表展示"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "模块化",
+      "replacements": [
+        "按模块拆分"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "流程化",
+      "replacements": [
+        "按固定步骤"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "标准化",
+      "replacements": [
+        "统一标准"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "规范化",
+      "replacements": [
+        "按规范"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "科学化",
+      "replacements": [
+        "科学地"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "精准化",
+      "replacements": [
+        "更精准地"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "个性化",
+      "replacements": [
+        "按个体差异"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "定制化",
+      "replacements": [
+        "按需定制"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "一体化",
+      "replacements": [
+        "整合"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "平台化",
+      "replacements": [
+        "搭建平台"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "生态化",
+      "replacements": [
+        "形成协作网络"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "产业化",
+      "replacements": [
+        "形成产业"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "规模化",
+      "replacements": [
+        "扩大规模"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "纵深化",
+      "replacements": [
+        "向纵深推进"
+      ],
+      "severity": "medium",
+      "note": "化字后缀",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "深入探讨",
+      "replacements": [
+        "进一步分析"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "扎实推进",
+      "replacements": [
+        "逐步推进"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "有机结合",
+      "replacements": [
+        "结合"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "有效衔接",
+      "replacements": [
+        "衔接"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "稳步推进",
+      "replacements": [
+        "推进"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "不断完善",
+      "replacements": [
+        "完善"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "进一步加强",
+      "replacements": [
+        "加强"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "有力保障",
+      "replacements": [
+        "保障"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "切实做到",
+      "replacements": [
+        "做到"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "统筹兼顾",
+      "replacements": [
+        "兼顾"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "协调推进",
+      "replacements": [
+        "协同推进"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "通盘考虑",
+      "replacements": [
+        "整体考虑"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "综合施策",
+      "replacements": [
+        "综合采取措施"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "精准发力",
+      "replacements": [
+        "集中解决关键问题"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "系统谋划",
+      "replacements": [
+        "整体规划"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "一目了然",
+      "replacements": [
+        "清楚"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "事半功倍",
+      "replacements": [
+        "效率更高"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "相辅相成",
+      "replacements": [
+        "互相支持"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "息息相关",
+      "replacements": [
+        "密切相关"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "行之有效",
+      "replacements": [
+        "有效"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "立竿见影",
+      "replacements": [
+        "很快见效"
+      ],
+      "severity": "high",
+      "note": "四字堆叠",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "势必",
+      "replacements": [
+        "可能"
+      ],
+      "severity": "high",
+      "note": "结尾抒情",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "指日可待",
+      "replacements": [
+        "仍需时间"
+      ],
+      "severity": "high",
+      "note": "结尾抒情",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "前景广阔",
+      "replacements": [
+        "仍有改进空间"
+      ],
+      "severity": "high",
+      "note": "结尾抒情",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "大有可为",
+      "replacements": [
+        "仍有改进空间"
+      ],
+      "severity": "high",
+      "note": "结尾抒情",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "任重道远",
+      "replacements": [
+        "仍需持续投入"
+      ],
+      "severity": "high",
+      "note": "结尾抒情",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "需要辩证看待",
+      "replacements": [
+        "要区分具体情况"
+      ],
+      "severity": "medium",
+      "note": "过度平衡",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "一分为二",
+      "replacements": [
+        "分别看两方面"
+      ],
+      "severity": "medium",
+      "note": "过度平衡",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "既有积极的一面",
+      "replacements": [
+        "有积极作用"
+      ],
+      "severity": "medium",
+      "note": "过度平衡",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "不可一概而论",
+      "replacements": [
+        "要区分条件"
+      ],
+      "severity": "medium",
+      "note": "过度平衡",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "需要具体问题具体分析",
+      "replacements": [
+        "要结合具体条件"
+      ],
+      "severity": "medium",
+      "note": "过度平衡",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "因情况而异",
+      "replacements": [
+        "取决于条件"
+      ],
+      "severity": "medium",
+      "note": "过度平衡",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "为什么会这样",
+      "replacements": [
+        "其原因在于"
+      ],
+      "severity": "high",
+      "note": "伪总结反问",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "问题出在哪里",
+      "replacements": [
+        "问题在于"
+      ],
+      "severity": "high",
+      "note": "伪总结反问",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "原因有三：",
+      "replacements": [
+        "主要原因包括："
+      ],
+      "severity": "high",
+      "note": "伪总结反问",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "这是为什么？",
+      "replacements": [
+        "原因在于"
+      ],
+      "severity": "high",
+      "note": "伪总结反问",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "何以至此？",
+      "replacements": [
+        "其原因在于"
+      ],
+      "severity": "high",
+      "note": "伪总结反问",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "双刃剑",
+      "replacements": [
+        "两面影响",
+        "利弊并存"
+      ],
+      "severity": "high",
+      "note": "跨模型通用套话",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "见证",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "塑造",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "勾勒",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "画卷",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "谱写新篇章",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "拭目以待",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "这，就是",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "唯有",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "方能",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "岁月",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "诗意",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "远方",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "微光",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "烟火气",
+      "replacements": [],
+      "severity": "medium",
+      "note": "意义拔高（仅检测）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "拓扑",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "克莱因瓶",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "睫毛",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "青苔",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "赛博",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "齿轮",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "白衬衫",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "瞳仁",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "涟漪",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "温柔",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "治愈",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "星辰",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
+    },
+    {
+      "pattern": "稳稳地接住",
+      "replacements": [],
+      "severity": "high",
+      "note": "抒情腔（学术语体错位）",
+      "replace_mode": "all"
     }
   ]
 }

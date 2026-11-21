@@ -36,6 +36,14 @@ function percent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+const FLAVOR_LABELS: Record<string, string> = {
+  hollow: "空洞升华",
+  template: "模板句式",
+  high_freq: "高频套话",
+  register: "语体错位",
+  leakage: "思维链泄露",
+};
+
 export default function WorkspacePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -511,6 +519,67 @@ export default function WorkspacePage() {
                   </strong>
                 </span>
               )}
+            </div>
+          )}
+          {audit.diagnosis && (
+            <div className="mt-4 rounded-lg border border-ink-100 bg-ink-50/50 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-medium text-ink-700">
+                  AI 味诊断（每千字）
+                </span>
+                {audit.diagnosis_compare && (
+                  <span
+                    className={
+                      audit.diagnosis_compare.improved
+                        ? "text-xs text-emerald-700"
+                        : "text-xs text-amber-700"
+                    }
+                  >
+                    {audit.diagnosis_compare.before_total} →{" "}
+                    {audit.diagnosis_compare.after_total}
+                    （{audit.diagnosis_compare.improved ? "下降" : "未下降"}{" "}
+                    {Math.abs(Math.round(audit.diagnosis_compare.drop_ratio * 100))}%）
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                {Object.entries(audit.diagnosis.flavors ?? {}).map(([key, value]) => (
+                  <span
+                    key={key}
+                    className={
+                      key === audit.diagnosis?.dominant
+                        ? "rounded-md bg-amber-100 px-2 py-1 text-amber-800"
+                        : "rounded-md bg-white px-2 py-1 text-ink-600"
+                    }
+                  >
+                    {FLAVOR_LABELS[key] ?? key}{" "}
+                    <strong className="text-ink-900">{value.per_1000}</strong>
+                  </span>
+                ))}
+              </div>
+              {audit.diagnosis.issues && audit.diagnosis.issues.length > 0 && (
+                <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-ink-600">
+                  {audit.diagnosis.issues.slice(0, 6).map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              {audit.diagnosis.plan && audit.diagnosis.plan.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
+                  {audit.diagnosis.plan.slice(0, 8).map((item, index) => (
+                    <span
+                      key={`${item.code}-${index}`}
+                      className="rounded-md border border-ink-200 bg-white px-2 py-0.5 text-ink-600"
+                      title={item.action}
+                    >
+                      {item.code} {item.label}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="mt-2 text-[11px] text-ink-400">
+                诊断是离线代理指标，目标是让中文读者读起来更像人写的；检测分数不是质量指标。
+              </p>
             </div>
           )}
           {audit.items.length > 0 && (

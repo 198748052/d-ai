@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "description": "固定搭配与专业术语保护表。literals 会在改写前整体占位保护；matcher 用于审计时跳过误报。",
+  "entries": [
+    {
+      "id": "ZH-WL-01",
+      "rule_ids": [
+        "C-04"
+      ],
+      "trigger": "生态",
+      "literals": [
+        "生态环境",
+        "生态系统",
+        "生态保护",
+        "生态修复",
+        "市场生态",
+        "平台生态",
+        "产业生态",
+        "生态学",
+        "生态农业",
+        "生态经济",
+        "生态治理"
+      ],
+      "matcher": "(?:生态环境|生态系统|生态保护|生态修复|市场生态|平台生态|产业生态|生态学|生态农业|生态经济|生态治理)",
+      "disposition": "whitelisted"
+    },
+    {
+      "id": "ZH-WL-02",
+      "rule_ids": [
+        "C-04"
+      ],
+      "trigger": "闭环",
+      "literals": [
+        "控制闭环",
+        "闭环控制",
+        "闭环系统",
+        "闭环调节"
+      ],
+      "matcher": "(?:控制闭环|闭环控制|闭环系统|闭环调节)",
+      "disposition": "whitelisted"
+    },
+    {
+      "id": "ZH-WL-03",
+      "rule_ids": [
+        "C-05"
+      ],
+      "trigger": "数字化",
+      "literals": [
+        "数字化转型",
+        "数字化改造",
+        "数字化升级"
+      ],
+      "matcher": "(?:数字化转型|数字化改造|数字化升级)",
+      "disposition": "whitelisted"
+    },
+    {
+      "id": "ZH-WL-04",
+      "rule_ids": [
+        "C-09"
+      ],
+      "trigger": "不仅",
+      "literals": [
+        "不仅仅",
+        "不仅如此"
+      ],
+      "matcher": "(?:不仅仅|不仅如此)",
+      "disposition": "whitelisted"
+    },
+    {
+      "id": "ZH-WL-05",
+      "rule_ids": [
+        "C-04"
+      ],
+      "trigger": "痛点",
+      "literals": [
+        "用户痛点",
+        "行业痛点",
+        "业务痛点"
+      ],
+      "matcher": "(?:用户痛点|行业痛点|业务痛点)",
+      "disposition": "review"
+    },
+    {
+      "id": "ZH-WL-06",
+      "rule_ids": [
+        "C-04"
+      ],
+      "trigger": "赋能",
+      "literals": [
+        "技术赋能",
+        "数字赋能",
+        "数据赋能"
+      ],
+      "matcher": "(?:技术赋能|数字赋能|数据赋能)",
+      "disposition": "review"
+    },
+    {
+      "id": "ZH-WL-07",
+      "rule_ids": [
+        "C-12",
+        "S-13"
+      ],
+      "trigger": "同时",
+      "literals": [
+        "与此同时"
+      ],
+      "matcher": "(?:与此同时)",
+      "disposition": "review"
+    },
+    {
+      "id": "ZH-WL-08",
+      "rule_ids": [
+        "C-04",
+        "C-05"
+      ],
+      "trigger": "智能",
+      "literals": [
+        "人工智能",
+        "智能制造",
+        "智能算法",
+        "智能控制",
+        "智能化改造"
+      ],
+      "matcher": "(?:人工智能|智能制造|智能算法|智能控制|智能化改造)",
+      "disposition": "whitelisted"
+    },
+    {
+      "id": "ZH-WL-09",
+      "rule_ids": [
+        "C-04",
+        "C-05"
+      ],
+      "trigger": "自动化",
+      "literals": [
+        "自动化控制",
+        "自动化测试",
+        "自动化生产",
+        "办公自动化"
+      ],
+      "matcher": "(?:自动化控制|自动化测试|自动化生产|办公自动化)",
+      "disposition": "whitelisted"
+    },
+    {
+      "id": "ZH-WL-10",
+      "rule_ids": [
+        "C-04"
+      ],
+      "trigger": "壁垒",
+      "literals": [
+        "技术壁垒",
+        "贸易壁垒",
+        "行业壁垒",
+        "进入壁垒"
+      ],
+      "matcher": "(?:技术壁垒|贸易壁垒|行业壁垒|进入壁垒)",
+      "disposition": "whitelisted"
+    }
+  ]
+}

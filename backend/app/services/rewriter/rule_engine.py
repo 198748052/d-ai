@@ -5,6 +5,8 @@ import re
 from dataclasses import dataclass, field
 
 from ..segmenter import split_sentences
+from .context_guard import ReplacementGuard, Whitelist, load_whitelist
+from .guards import merge_short_runs
 
 SEVERITY_BY_STRENGTH = {
     "light": {"high"},
@@ -75,17 +77,27 @@ class RewriteOptions:
 
 
 class RuleEngine:
-    def __init__(self, rules: list[Rule]):
+    def __init__(
+        self,
+        rules: list[Rule],
+        whitelist: Whitelist | None = None,
+        guard: ReplacementGuard | None = None,
+    ):
         self.rules = rules
+        self.whitelist = whitelist or load_whitelist()
+        self.guard = guard or ReplacementGuard()
         self.lexicon_rules = sorted(
             [r for r in rules if r.category == "lexicon"],
             key=lambda r: len(r.pattern),
             reverse=True,
         )
+        # “对…进行…”必须先于单独的“进行…”执行，否则后者会先吃掉动词。
         self.regex_rules = sorted(
             [r for r in rules if r.category == "regex"],
-            key=lambda r: len(r.pattern),
-            reverse=True,
+            key=lambda r: (
+                0 if r.pattern.startswith("对(") and "进行" in r.pattern else 1,
+                -len(r.pattern),
+            ),
         )
 
     def rewrite(self, text: str, options: RewriteOptions) -> str:
@@ -108,6 +120,8 @@ class RuleEngine:
             academic_len = {"light": 100, "medium": 75, "strong": 60}.get(options.strength, 75)
             result = self._split_long_sentences(result, academic_len, comma_threshold=99)
             result = self._optimize_rhythm(result, target_cv=0.35, max_iter=3)
+            # S-02: 降重工具式连续短句在学术语体里是硬信号，合并回正常长度。
+            result = merge_short_runs(result)
         else:
             result = self._split_long_sentences(result, max_len, comma_threshold)
             if options.strength == "strong":
@@ -155,6 +169,7 @@ class RuleEngine:
             for pattern in patterns
         }
         hits = {pattern: 0 for pattern in patterns}
+        used: dict[str, int] = {}
 
         def repl(match: re.Match[str]) -> str:
             pattern = match.group(0)
@@ -166,9 +181,17 @@ class RuleEngine:
                 return pattern
             if mode == "alternate" and index % 2 == 1:
                 return pattern
+            if self.whitelist.is_protected(
+                text, match.start(), match.end()
+            ) or self.whitelist.review_required(text, match.start(), match.end()):
+                # 固定搭配整体保护；需要人工/LLM 判断的语境不做机械替换。
+                return pattern
             replacements = rule.replacements
-            value = replacements[cursors[pattern] % len(replacements)]
+            value = self.guard.pick(replacements, used, cursors[pattern])
             cursors[pattern] += 1
+            if value is None:
+                return pattern
+            used[value] = used.get(value, 0) + 1
             return value
 
         return combined.sub(repl, text)
@@ -184,15 +207,36 @@ class RuleEngine:
                 if rule.pattern.startswith("^"):
                     sentences = split_sentences(text)
                     sentences = [
-                        re.sub(rule.pattern, replacement, sentence)
+                        self._safe_sub(rule.pattern, replacement, sentence)
                         for sentence in sentences
                     ]
                     text = "".join(sentences)
                 else:
-                    text = re.sub(rule.pattern, replacement, text, flags=re.MULTILINE)
+                    text = self._safe_sub(
+                        rule.pattern, replacement, text, flags=re.MULTILINE
+                    )
             except re.error:
                 continue
         return text
+
+    def _safe_sub(
+        self,
+        pattern: str,
+        replacement: str,
+        text: str,
+        flags: int = 0,
+    ) -> str:
+        def repl(match: re.Match[str]) -> str:
+            if self.whitelist.is_protected(
+                text, match.start(), match.end()
+            ) or self.whitelist.review_required(text, match.start(), match.end()):
+                return match.group(0)
+            try:
+                return match.expand(replacement)
+            except (re.error, IndexError):
+                return match.group(0)
+
+        return re.sub(pattern, repl, text, flags=flags)
 
     def _normalize_punctuation(self, text: str) -> str:
         for pattern, repl in _WHITESPACE_FIX:
