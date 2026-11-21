@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { apiGet, exportDocument, fetchRewriteJob, startRewriteJob } from "@/lib/api";
+import { apiGet, apiSend, exportDocument, fetchRewriteJob, startRewriteJob } from "@/lib/api";
 import { useAuth } from "@/components/AuthContext";
 import type {
   AuditResult,
@@ -53,6 +53,39 @@ export default function WorkspacePage() {
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [jobDbId, setJobDbId] = useState<number | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState("");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("rewrite-draft");
+      if (!raw) return;
+      const draft = JSON.parse(raw) as { text?: string; savedAt?: string };
+      if (draft.text) {
+        setText(draft.text);
+        setDraftSavedAt(draft.savedAt ?? "");
+      }
+    } catch {
+      // ignore broken draft
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!text) return;
+    const timer = setTimeout(() => {
+      const savedAt = new Date().toLocaleTimeString("zh-CN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      try {
+        localStorage.setItem("rewrite-draft", JSON.stringify({ text, savedAt }));
+        setDraftSavedAt(savedAt);
+      } catch {
+        // ignore quota errors
+      }
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [text]);
 
   useEffect(() => {
     apiGet<Preset[]>("/api/presets")
@@ -87,8 +120,8 @@ export default function WorkspacePage() {
       setError("请先粘贴需要改写的文章");
       return;
     }
-    if (text.length > 200000) {
-      setError("文本过长，单次上限 20 万字符，请分段处理");
+    if (text.length > 30000) {
+      setError("文本过长，单次上限 30000 字，请分段处理");
       return;
     }
     setRunning(true);
@@ -102,12 +135,13 @@ export default function WorkspacePage() {
     setTotal(countParagraphs(text));
 
     try {
-      const { job_id, total: jobTotal } = await startRewriteJob({
+      const { job_id, db_id, total: jobTotal } = await startRewriteJob({
         text,
         mode: "hybrid",
         preset_id: preset?.id,
       });
       setTotal(jobTotal);
+      setJobDbId(db_id);
 
       let failures = 0;
       for (;;) {
@@ -136,6 +170,10 @@ export default function WorkspacePage() {
           setError(job.error || "改写失败");
           break;
         }
+        if (job.status === "canceled") {
+          setError("任务已取消");
+          break;
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "改写失败";
@@ -146,8 +184,22 @@ export default function WorkspacePage() {
       setError(message);
     } finally {
       setRunning(false);
+      setJobDbId(null);
     }
-  }, [text, preset]);
+  }, [text, preset, user, router]);
+
+  const handleCancel = useCallback(async () => {
+    if (!jobDbId) return;
+    try {
+      await apiSend<{ status: string; refunded: boolean }>(
+        `/api/jobs/${jobDbId}/cancel`,
+        "POST"
+      );
+      setError("任务已取消");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "取消失败");
+    }
+  }, [jobDbId]);
 
   const handleCopy = useCallback(async () => {
     if (!rewrittenText) return;
@@ -207,12 +259,25 @@ export default function WorkspacePage() {
             </button>
             <button
               type="button"
-              onClick={() => setText("")}
+              onClick={() => {
+                setText("");
+                setDraftSavedAt("");
+                try {
+                  localStorage.removeItem("rewrite-draft");
+                } catch {
+                  // ignore
+                }
+              }}
               className="text-ink-500 hover:text-ink-800"
             >
               清空
             </button>
-            <span className="text-ink-400">{text.length} 字</span>
+            <span className={text.length > 30000 ? "text-red-500" : "text-ink-400"}>
+              {text.length} / 30000 字
+            </span>
+            {draftSavedAt && (
+              <span className="text-xs text-ink-400">草稿已保存 {draftSavedAt}</span>
+            )}
           </div>
         </div>
         <textarea
@@ -235,6 +300,15 @@ export default function WorkspacePage() {
           >
             {running ? "改写中…" : "开始改写"}
           </button>
+          {running && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-600 hover:bg-ink-50"
+            >
+              取消任务
+            </button>
+          )}
           {running && (
             <span className="text-sm text-ink-500">
               已处理 {doneCount}/{total || "?"} 段

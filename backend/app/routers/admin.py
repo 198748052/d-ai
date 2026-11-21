@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from ..core.security import new_redeem_code
 from ..db.database import get_session
 from ..deps import require_admin
-from ..models.models import CreditLog, RedeemCode, User
+from ..models.models import CreditLog, ErrorLog, RedeemCode, RewriteJob, User
 from ..services.credits import grant
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
@@ -36,6 +37,78 @@ def _user_row(user: User) -> dict:
         "created_at": user.created_at.isoformat() if user.created_at else "",
         "last_login_at": user.last_login_at.isoformat() if user.last_login_at else "",
     }
+
+
+@router.get("/stats")
+def stats(
+    _: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    now = datetime.now(timezone.utc)
+    today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_ago = now - timedelta(days=7)
+    day_ago = now - timedelta(hours=24)
+
+    total_users = session.exec(select(func.count()).select_from(User)).one()
+    users_today = session.exec(
+        select(func.count()).select_from(User).where(User.created_at >= today)
+    ).one()
+    total_jobs = session.exec(select(func.count()).select_from(RewriteJob)).one()
+    jobs_today = session.exec(
+        select(func.count()).select_from(RewriteJob).where(RewriteJob.created_at >= today)
+    ).one()
+    chars_today = session.exec(
+        select(func.coalesce(func.sum(RewriteJob.charged_chars), 0)).where(
+            RewriteJob.created_at >= today
+        )
+    ).one()
+    active_users = session.exec(
+        select(func.count(func.distinct(RewriteJob.user_id))).where(
+            RewriteJob.created_at >= week_ago,
+            RewriteJob.user_id.is_not(None),
+        )
+    ).one()
+    errors_24h = session.exec(
+        select(func.count()).select_from(ErrorLog).where(ErrorLog.created_at >= day_ago)
+    ).one()
+    credits_total = session.exec(
+        select(func.coalesce(func.sum(User.credits), 0))
+    ).one()
+
+    return {
+        "total_users": int(total_users or 0),
+        "users_today": int(users_today or 0),
+        "total_jobs": int(total_jobs or 0),
+        "jobs_today": int(jobs_today or 0),
+        "chars_today": int(chars_today or 0),
+        "active_users_7d": int(active_users or 0),
+        "errors_24h": int(errors_24h or 0),
+        "credits_total": int(credits_total or 0),
+    }
+
+
+@router.get("/errors")
+def list_errors(
+    limit: int = 50,
+    _: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    rows = session.exec(
+        select(ErrorLog).order_by(ErrorLog.id.desc()).limit(min(max(limit, 1), 200))
+    ).all()
+    return [
+        {
+            "id": row.id,
+            "created_at": row.created_at.isoformat(),
+            "source": row.source,
+            "level": row.level,
+            "message": row.message,
+            "detail": row.detail[:1000],
+            "path": row.path,
+            "user_id": row.user_id,
+        }
+        for row in rows
+    ]
 
 
 @router.get("/users")

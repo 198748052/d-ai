@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/AuthContext";
+import ErrorReporter from "@/components/ErrorReporter";
 import Sidebar from "@/components/Sidebar";
 import "./globals.css";
 
@@ -17,6 +18,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body>
         <AuthProvider>
+          <ErrorReporter />
           <div className="min-h-screen md:flex">
             <Sidebar />
             <main className="min-w-0 flex-1 px-3 py-5 sm:px-5 sm:py-6">

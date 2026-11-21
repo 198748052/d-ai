@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/api";
 import { useAuth } from "@/components/AuthContext";
-import type { AdminUser, RedeemCodeItem } from "@/lib/types";
+import type { AdminStats, AdminUser, ErrorItem, RedeemCodeItem } from "@/lib/types";
 
 interface UpdateCheck {
   ok: boolean;
@@ -26,6 +26,8 @@ interface UpdateStatus {
 export default function AdminPage() {
   const { user, loading } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [errors, setErrors] = useState<ErrorItem[]>([]);
   const [codes, setCodes] = useState<RedeemCodeItem[]>([]);
   const [deltas, setDeltas] = useState<Record<number, string>>({});
   const [credits, setCredits] = useState("500");
@@ -40,12 +42,16 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     try {
-      const [u, c] = await Promise.all([
+      const [u, c, st, errs] = await Promise.all([
         apiGet<AdminUser[]>("/api/admin/users"),
         apiGet<RedeemCodeItem[]>("/api/admin/redeem-codes"),
+        apiGet<AdminStats>("/api/admin/stats"),
+        apiGet<ErrorItem[]>("/api/admin/errors?limit=20"),
       ]);
       setUsers(u);
       setCodes(c);
+      setStats(st);
+      setErrors(errs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     }
@@ -305,6 +311,27 @@ export default function AdminPage() {
         </div>
       </section>
 
+
+      {stats && (
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: "用户总数", value: stats.total_users },
+            { label: "今日新增", value: stats.users_today },
+            { label: "任务总数", value: stats.total_jobs },
+            { label: "今日任务", value: stats.jobs_today },
+            { label: "今日消耗字数", value: stats.chars_today },
+            { label: "7 日活跃", value: stats.active_users_7d },
+            { label: "24h 错误", value: stats.errors_24h },
+            { label: "用户余额合计", value: stats.credits_total },
+          ].map((item) => (
+            <div key={item.label} className="rounded-xl border border-ink-200 bg-white p-4 shadow-card">
+              <div className="text-xs text-ink-500">{item.label}</div>
+              <div className="mt-1 text-xl font-semibold text-ink-900">{item.value}</div>
+            </div>
+          ))}
+        </section>
+      )}
+
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
         <h2 className="text-sm font-semibold text-ink-900">兑换码</h2>
         <form onSubmit={createCode} className="mt-3 flex flex-wrap items-end gap-2">
@@ -349,6 +376,38 @@ export default function AdminPage() {
                 {item.credits} 字 · 已用 {item.used_count}/{item.max_uses}
               </span>
             </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink-900">错误监控（最近 20 条）</h2>
+        <p className="mt-1 text-xs text-ink-500">
+          记录服务端异常、任务失败与前端报错。配置 ALERT_WEBHOOK_URL 后会同步推送到群机器人。
+        </p>
+        <div className="mt-3 space-y-2">
+          {errors.length === 0 && (
+            <div className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">暂无错误记录</div>
+          )}
+          {errors.map((item) => (
+            <details key={item.id} className="rounded-lg border border-ink-100 px-3 py-2 text-xs">
+              <summary className="cursor-pointer text-ink-700">
+                <span className="mr-2 rounded bg-ink-100 px-1.5 py-0.5 text-[10px] text-ink-600">
+                  {item.source}
+                </span>
+                {item.message}
+              </summary>
+              <div className="mt-2 space-y-1 text-ink-500">
+                <div>{new Date(item.created_at).toLocaleString("zh-CN")}</div>
+                {item.path && <div>路径：{item.path}</div>}
+                {item.user_id && <div>用户 ID：{item.user_id}</div>}
+                {item.detail && (
+                  <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-ink-50 p-2 text-[11px]">
+                    {item.detail}
+                  </pre>
+                )}
+              </div>
+            </details>
           ))}
         </div>
       </section>

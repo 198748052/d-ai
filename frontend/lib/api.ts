@@ -90,7 +90,7 @@ export async function streamRewrite(
 
 export async function startRewriteJob(
   payload: RewritePayload
-): Promise<{ job_id: string; total: number }> {
+): Promise<{ job_id: string; db_id: number; total: number }> {
   const res = await fetch("/api/rewrite/jobs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

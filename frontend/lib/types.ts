@@ -72,7 +72,7 @@ export interface RewriteResponse {
 
 export interface RewriteJobStatus {
   job_id: string;
-  status: "running" | "done" | "error";
+  status: "running" | "done" | "error" | "canceled";
   total: number;
   completed: number;
   paragraphs: ParagraphResult[];
@@ -81,6 +81,28 @@ export interface RewriteJobStatus {
   warnings: string[];
   ppl_issues?: PPLIssue[];
   error: string | null;
+}
+
+export interface AdminStats {
+  total_users: number;
+  users_today: number;
+  total_jobs: number;
+  jobs_today: number;
+  chars_today: number;
+  active_users_7d: number;
+  errors_24h: number;
+  credits_total: number;
+}
+
+export interface ErrorItem {
+  id: number;
+  created_at: string;
+  source: string;
+  level: string;
+  message: string;
+  detail: string;
+  path: string;
+  user_id: number | null;
 }
 
 export interface Preset {

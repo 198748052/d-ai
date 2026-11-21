@@ -2,14 +2,30 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+import traceback
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session
 
 from .core.config import CORS_ORIGINS
 from .db.database import engine, init_db
 from .models.models import LLMSetting
-from .routers import admin, auth, credits, export, features, lessons, llm, presets, rewrite, update
+from .routers import (
+    admin,
+    auth,
+    credits,
+    errors,
+    export,
+    features,
+    lessons,
+    llm,
+    presets,
+    rewrite,
+    update,
+)
+from .services.errors import record_error
 from .services import local_model
 from .services.seed import seed
 
@@ -46,6 +62,18 @@ app.include_router(credits.router)
 app.include_router(admin.router)
 app.include_router(update.router)
 app.include_router(update.webhook_router)
+app.include_router(errors.router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    record_error(
+        f"未处理异常：{type(exc).__name__}: {exc}",
+        detail=traceback.format_exc(),
+        source="server",
+        path=str(request.url.path),
+    )
+    return JSONResponse(status_code=500, content={"detail": "服务器内部错误，已记录"})
 
 
 @app.get("/api/health")

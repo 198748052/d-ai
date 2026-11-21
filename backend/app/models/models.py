@@ -83,6 +83,29 @@ class RedeemCode(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
+class EmailCode(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    email: str = Field(index=True)
+    purpose: str = "register"  # register | reset
+    code_hash: str = ""
+    expires_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    used: bool = False
+    attempts: int = 0
+    ip: str = ""
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ErrorLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    source: str = "server"  # server | client | job
+    level: str = "error"
+    message: str = ""
+    detail: str = ""
+    path: str = ""
+    user_id: Optional[int] = None
+
+
 class RewriteLesson(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -131,4 +154,5 @@ class RewriteJob(SQLModel, table=True):
     error: str = ""
     progress_total: int = 0
     progress_completed: int = 0
+    charged_chars: int = 0
     status: str = "running"

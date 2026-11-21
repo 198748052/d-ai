@@ -15,6 +15,9 @@
 #   SERVICE_NAME=ai-rewrite       systemd unit name
 #   INSTALL_LOCAL_MODEL=0         skip torch/transformers (perplexity feature disabled)
 #   GITHUB_WEBHOOK_SECRET=xx      enable GitHub push webhook
+#   SMTP_USER=xx SMTP_PASSWORD=xx QQ 邮箱 SMTP 账号与授权码（注册验证码必需）
+#   ALERT_WEBHOOK_URL=xx          错误告警群机器人地址（企业微信/自定义）
+#   EMAIL_CODE_ECHO=1             测试用：验证码直接返回，不真正发邮件
 #   SKIP_INSTALL=1 SKIP_BUILD=1 NO_SERVICE=1 NO_START=1   for debugging
 set -euo pipefail
 
@@ -29,6 +32,12 @@ NO_SERVICE="${NO_SERVICE:-0}"
 NO_START="${NO_START:-0}"
 LOCAL_MODEL="${LOCAL_MODEL:-Qwen/Qwen2.5-1.5B}"
 LOCAL_ENABLED="${LOCAL_ENABLED:-1}"
+SMTP_HOST="${SMTP_HOST:-smtp.qq.com}"
+SMTP_PORT="${SMTP_PORT:-465}"
+SMTP_USER="${SMTP_USER:-}"
+SMTP_PASSWORD="${SMTP_PASSWORD:-}"
+ALERT_WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
+EMAIL_CODE_ECHO="${EMAIL_CODE_ECHO:-0}"
 
 log() { printf '\033[32m[deploy %s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
 warn() { printf '\033[33m[deploy %s]\033[0m %s\n' "$(date +%H:%M:%S)" "$*"; }
@@ -189,6 +198,22 @@ if [ "$NO_START" = "1" ]; then
   log "已跳过启动（NO_START=1）"
 elif [ "$NO_SERVICE" != "1" ] && [ "$(id -u)" -eq 0 ] && need_cmd systemctl; then
   UNIT="/etc/systemd/system/$SERVICE_NAME.service"
+  ENV_FILE="/etc/$SERVICE_NAME.env"
+  if [ -n "$SMTP_USER" ] || [ -n "$ALERT_WEBHOOK_URL" ] || [ "$EMAIL_CODE_ECHO" = "1" ]; then
+    log "写入环境变量文件：$ENV_FILE"
+    (
+      umask 077
+      {
+        echo "SMTP_HOST=$SMTP_HOST"
+        echo "SMTP_PORT=$SMTP_PORT"
+        [ -n "$SMTP_USER" ] && echo "SMTP_USER=$SMTP_USER"
+        [ -n "$SMTP_PASSWORD" ] && echo "SMTP_PASSWORD=$SMTP_PASSWORD"
+        [ -n "$ALERT_WEBHOOK_URL" ] && echo "ALERT_WEBHOOK_URL=$ALERT_WEBHOOK_URL"
+        [ "$EMAIL_CODE_ECHO" = "1" ] && echo "EMAIL_CODE_ECHO=1"
+      } > "$ENV_FILE"
+    )
+    chmod 600 "$ENV_FILE"
+  fi
   log "写入 systemd 服务：$UNIT"
   {
     echo "[Unit]"
@@ -206,6 +231,7 @@ elif [ "$NO_SERVICE" != "1" ] && [ "$(id -u)" -eq 0 ] && need_cmd systemctl; the
     echo "Environment=BACKEND_PORT=${BACKEND_PORT:-18438}"
     echo "Environment=LOCAL_MODEL=$LOCAL_MODEL"
     echo "Environment=LOCAL_ENABLED=$LOCAL_ENABLED"
+    echo "EnvironmentFile=-$ENV_FILE"
     if [ -n "${GITHUB_WEBHOOK_SECRET:-}" ]; then
       echo "Environment=GITHUB_WEBHOOK_SECRET=$GITHUB_WEBHOOK_SECRET"
     fi
@@ -224,7 +250,10 @@ elif [ "$NO_SERVICE" != "1" ] && [ "$(id -u)" -eq 0 ] && need_cmd systemctl; the
   fi
 else
   log "未使用 systemd，后台启动服务"
-  ( cd "$APP_DIR" && PATH="$SERVICE_PATH" LOCAL_MODEL="$LOCAL_MODEL" LOCAL_ENABLED="$LOCAL_ENABLED" nohup bash scripts/serve.sh >"$RUN_DIR/serve.log" 2>&1 & )
+  ( cd "$APP_DIR" && PATH="$SERVICE_PATH" LOCAL_MODEL="$LOCAL_MODEL" LOCAL_ENABLED="$LOCAL_ENABLED" \
+      SMTP_HOST="$SMTP_HOST" SMTP_PORT="$SMTP_PORT" SMTP_USER="$SMTP_USER" SMTP_PASSWORD="$SMTP_PASSWORD" \
+      ALERT_WEBHOOK_URL="$ALERT_WEBHOOK_URL" EMAIL_CODE_ECHO="$EMAIL_CODE_ECHO" \
+      nohup bash scripts/serve.sh >"$RUN_DIR/serve.log" 2>&1 & )
   sleep 2
 fi
 
@@ -238,6 +267,8 @@ cat <<EOF
   2. 默认使用 Qwen/Qwen2.5-1.5B（float16 约 3.5G），首次启动会从 ModelScope 下载；如遇 OOM 改用 0.5B
   3. 需要 GitHub 自动更新时，设置 GITHUB_WEBHOOK_SECRET 并配置仓库 Webhook
   4. 建议用 nginx 把 80/443 反代到 127.0.0.1:$PORT，只对外暴露 80/443
+  5. 注册需要 QQ 邮箱验证码：部署时传 SMTP_USER/SMTP_PASSWORD（QQ 邮箱授权码），或先设 EMAIL_CODE_ECHO=1 测试
+  6. 错误告警：传 ALERT_WEBHOOK_URL（企业微信机器人）后，服务端异常与任务失败会推送到群里
 
 服务管理：
   systemctl status $SERVICE_NAME

@@ -13,6 +13,11 @@ export default function AccountPage() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [pwdMessage, setPwdMessage] = useState("");
+  const [pwdError, setPwdError] = useState("");
+  const [pwdBusy, setPwdBusy] = useState(false);
 
   const loadLogs = useCallback(async () => {
     try {
@@ -45,6 +50,26 @@ export default function AccountPage() {
       setError(err instanceof Error ? err.message : "兑换失败");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const changePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setPwdBusy(true);
+    setPwdError("");
+    setPwdMessage("");
+    try {
+      await apiSend<{ ok: boolean }>("/api/auth/change-password", "POST", {
+        old_password: oldPassword,
+        new_password: newPassword,
+      });
+      setOldPassword("");
+      setNewPassword("");
+      setPwdMessage("密码已修改，其他设备的登录已失效");
+    } catch (err) {
+      setPwdError(err instanceof Error ? err.message : "修改失败");
+    } finally {
+      setPwdBusy(false);
     }
   };
 
@@ -109,6 +134,55 @@ export default function AccountPage() {
         {error && (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
+          </div>
+        )}
+      </section>
+
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink-900">修改密码</h2>
+        <form onSubmit={changePassword} className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-500">原密码</label>
+            <input
+              type="password"
+              value={oldPassword}
+              onChange={(e) => setOldPassword(e.target.value)}
+              required
+              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-500">
+              新密码（至少 8 位）
+            </label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={8}
+              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <button
+              type="submit"
+              disabled={pwdBusy}
+              className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-60"
+            >
+              {pwdBusy ? "提交中…" : "修改密码"}
+            </button>
+          </div>
+        </form>
+        {pwdMessage && (
+          <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            {pwdMessage}
+          </div>
+        )}
+        {pwdError && (
+          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {pwdError}
           </div>
         )}
       </section>

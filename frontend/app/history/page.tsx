@@ -12,6 +12,7 @@ const STATUS_LABEL: Record<string, string> = {
   error: "失败",
   interrupted: "已中断",
   paused: "已暂停",
+  canceled: "已取消",
 };
 
 function statusClass(status: string): string {
@@ -19,6 +20,7 @@ function statusClass(status: string): string {
   if (status === "running") return "bg-accent-50 text-accent-700";
   if (status === "paused") return "bg-sky-50 text-sky-700";
   if (status === "error") return "bg-red-50 text-red-600";
+  if (status === "canceled") return "bg-ink-100 text-ink-500";
   return "bg-amber-50 text-amber-700";
 }
 
@@ -71,6 +73,25 @@ export default function HistoryPage() {
   useEffect(() => {
     if (selectedId !== null) loadDetail(selectedId);
   }, [selectedId, loadDetail]);
+
+  const handleCancel = async (id: number) => {
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const result = await apiSend<{ status: string; refunded: boolean }>(
+        `/api/jobs/${id}/cancel`,
+        "POST"
+      );
+      setMessage(result.refunded ? `任务 #${id} 已取消，本次额度已退回` : `任务 #${id} 已取消`);
+      await loadJobs();
+      if (selectedId === id) await loadDetail(id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "取消失败");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleRerun = async (id: number) => {
     setBusy(true);
@@ -208,6 +229,19 @@ export default function HistoryPage() {
                         className="text-emerald-600 hover:underline"
                       >
                         继续
+                      </button>
+                    )}
+                    {(job.status === "running" || job.status === "paused") && (
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleCancel(job.id);
+                        }}
+                        disabled={busy}
+                        className="text-red-500 hover:underline disabled:opacity-60"
+                      >
+                        取消
                       </button>
                     )}
                     <button
