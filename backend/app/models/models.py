@@ -43,6 +43,23 @@ class LLMSetting(SQLModel, table=True):
     ppl_min: float = 45.0
     ppl_retry: int = 2
     ppl_severe: float = 20.0
+    candidate_count: int = 1
+    deep_rewrite: bool = False
+    structure_mode: str = "preserve"  # preserve | flexible
+
+
+class DetectorFeedback(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    user_id: Optional[int] = Field(default=None, index=True)
+    job_id: Optional[int] = Field(default=None, index=True)
+    detector: str = ""
+    detector_version: str = ""
+    checked_at: Optional[datetime] = None
+    score_before: float = 0.0
+    score_after: float = 0.0
+    red_sentences: str = "[]"
+    notes: str = ""
 
 
 class User(SQLModel, table=True):

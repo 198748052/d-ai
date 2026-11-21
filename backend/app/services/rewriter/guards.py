@@ -31,7 +31,8 @@ def clean_candidate(original: str, candidate: str) -> str:
     text = (candidate or "").strip()
     if not text:
         return text
-    if original and original in text and len(text) > len(original) * 1.2:
+    # 只处理“原文重复两遍”的明显回声，避免误删合法扩写。
+    if original and len(original) > 20 and text.count(original) >= 2:
         text = text.replace(original, "", 1).strip()
     half = len(text) // 2
     if half > 20 and text[:half].strip() == text[half:].strip():

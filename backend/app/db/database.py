@@ -29,6 +29,9 @@ def _migrate() -> None:
             ("ppl_min", "FLOAT DEFAULT 45.0"),
             ("ppl_retry", "INTEGER DEFAULT 2"),
             ("ppl_severe", "FLOAT DEFAULT 20.0"),
+            ("candidate_count", "INTEGER DEFAULT 1"),
+            ("deep_rewrite", "BOOLEAN DEFAULT 0"),
+            ("structure_mode", "VARCHAR DEFAULT 'preserve'"),
         ]:
             if column not in llm_columns:
                 conn.exec_driver_sql(f"ALTER TABLE llmsetting ADD COLUMN {column} {ddl}")

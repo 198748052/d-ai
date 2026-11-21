@@ -7,6 +7,10 @@ import { apiGet, apiSend, exportDocument, fetchRewriteJob, startRewriteJob } fro
 import { useAuth } from "@/components/AuthContext";
 import type {
   AuditResult,
+  ClarifyQuestion,
+  ClarifyResponse,
+  ContentFact,
+  ContentReport,
   PPLIssue,
   ParagraphResult,
   Preset,
@@ -63,6 +67,16 @@ export default function WorkspacePage() {
   const [copied, setCopied] = useState(false);
   const [jobDbId, setJobDbId] = useState<number | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState("");
+  const [clarifyQuestions, setClarifyQuestions] = useState<ClarifyQuestion[]>([]);
+  const [clarifyAnswers, setClarifyAnswers] = useState<Record<string, string>>({});
+  const [contentFacts, setContentFacts] = useState<ContentFact[]>([]);
+  const [clarifyLoading, setClarifyLoading] = useState(false);
+  const [showClarify, setShowClarify] = useState(false);
+  const [contentReport, setContentReport] = useState<ContentReport | null>(null);
+  const [structureChanges, setStructureChanges] = useState<string[]>([]);
+  const [candidateCount, setCandidateCount] = useState(1);
+  const [deepRewrite, setDeepRewrite] = useState(false);
+  const [structureMode, setStructureMode] = useState<"preserve" | "flexible">("preserve");
 
   useEffect(() => {
     try {
@@ -119,6 +133,54 @@ export default function WorkspacePage() {
     return { empty, abnormal, other };
   }, [warnings]);
 
+  const handleClarify = useCallback(async () => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (!text.trim()) {
+      setError("请先粘贴需要改写的文章");
+      return;
+    }
+    setClarifyLoading(true);
+    setError("");
+    try {
+      const result = await apiSend<ClarifyResponse>(
+        "/api/rewrite/clarify",
+        "POST",
+        { text }
+      );
+      setClarifyQuestions(result.questions);
+      setClarifyAnswers({});
+      setShowClarify(true);
+      if (!result.questions.length) {
+        setError("没有扫描到明显的内容缺口，可以直接开始改写");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "扫描内容缺口失败");
+    } finally {
+      setClarifyLoading(false);
+    }
+  }, [text, user, router]);
+
+  const handleApplyFacts = useCallback(() => {
+    const facts: ContentFact[] = [];
+    for (const question of clarifyQuestions) {
+      const value = (clarifyAnswers[question.id] ?? "").trim();
+      if (!value) continue;
+      facts.push({
+        kind: question.kind as ContentFact["kind"],
+        text: value,
+        anchor: `第${question.paragraph}段`,
+      });
+    }
+    setContentFacts(facts);
+    setShowClarify(false);
+    if (!facts.length) {
+      setError("还没有填写任何补充内容");
+    }
+  }, [clarifyQuestions, clarifyAnswers]);
+
   const handleRewrite = useCallback(async () => {
     if (!user) {
       router.push("/login");
@@ -140,6 +202,8 @@ export default function WorkspacePage() {
     setStats(null);
     setAudit(null);
     setRewrittenText("");
+    setContentReport(null);
+    setStructureChanges([]);
     setTotal(countParagraphs(text));
 
     try {
@@ -147,6 +211,10 @@ export default function WorkspacePage() {
         text,
         mode: "hybrid",
         preset_id: preset?.id,
+        content_facts: contentFacts,
+        candidate_count: candidateCount,
+        deep_rewrite: deepRewrite,
+        structure_mode: structureMode,
       });
       setTotal(jobTotal);
       setJobDbId(db_id);
@@ -171,6 +239,8 @@ export default function WorkspacePage() {
         if (job.status === "done") {
           setStats(job.stats);
           setAudit(job.audit ?? null);
+          setContentReport(job.content_report ?? null);
+          setStructureChanges(job.structure_changes ?? []);
           setRewrittenText(job.paragraphs.map((item) => item.rewritten).join("\n\n"));
           break;
         }
@@ -194,7 +264,16 @@ export default function WorkspacePage() {
       setRunning(false);
       setJobDbId(null);
     }
-  }, [text, preset, user, router]);
+  }, [
+    text,
+    preset,
+    user,
+    router,
+    contentFacts,
+    candidateCount,
+    deepRewrite,
+    structureMode,
+  ]);
 
   const handleCancel = useCallback(async () => {
     if (!jobDbId) return;
@@ -296,7 +375,52 @@ export default function WorkspacePage() {
         />
 
         <div className="mt-3 rounded-lg border border-accent-100 bg-accent-50/60 px-3 py-2 text-xs text-accent-700">
-          学术模式：口语化已关闭。流程为「规则库删除/替换 → 按句分片交给 LLM → 逐片复检 → 段落级纠正 → 特征审计」。
+          学术模式：口语化已关闭。流程为「内容缺口扫描 → 规则库删除/替换 → 多候选 LLM 改写 → 复检与结构复核 → 特征审计」。
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-ink-600">
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={deepRewrite}
+              onChange={(e) => setDeepRewrite(e.target.checked)}
+              className="h-3.5 w-3.5 accent-accent-600"
+            />
+            深度改写
+          </label>
+          <label className="flex items-center gap-1.5">
+            结构
+            <select
+              value={structureMode}
+              onChange={(e) =>
+                setStructureMode(e.target.value === "flexible" ? "flexible" : "preserve")
+              }
+              className="rounded-md border border-ink-200 bg-white px-2 py-1"
+            >
+              <option value="preserve">保持段落</option>
+              <option value="flexible">允许拆分/合并</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-1.5">
+            候选
+            <select
+              value={candidateCount}
+              onChange={(e) => setCandidateCount(Number(e.target.value))}
+              className="rounded-md border border-ink-200 bg-white px-2 py-1"
+            >
+              <option value={1}>1 个</option>
+              <option value={2}>2 个</option>
+              <option value={3}>3 个</option>
+            </select>
+          </label>
+          {contentFacts.length > 0 && (
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
+              已补充 {contentFacts.length} 条事实
+            </span>
+          )}
+          <span className="text-[11px] text-ink-400">
+            深度改写和多候选会增加 LLM 痕迹，建议先用小样本对比检测分。
+          </span>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -307,6 +431,14 @@ export default function WorkspacePage() {
             className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {running ? "改写中…" : "开始改写"}
+          </button>
+          <button
+            type="button"
+            onClick={handleClarify}
+            disabled={running || clarifyLoading}
+            className="rounded-lg border border-accent-200 px-3 py-2 text-sm text-accent-700 hover:bg-accent-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {clarifyLoading ? "扫描中…" : "扫描内容缺口"}
           </button>
           {running && (
             <button
@@ -341,6 +473,66 @@ export default function WorkspacePage() {
           )}
         </div>
       </section>
+
+      {showClarify && (
+        <section className="rounded-xl border border-accent-200 bg-white p-5 shadow-card">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-ink-900">补充具体内容</h2>
+              <p className="mt-1 text-xs text-ink-500">
+                只填写你确认过的真实信息。数字、样本量、引用、失败案例会原样写入，模型不会自行编造。
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowClarify(false)}
+              className="text-xs text-ink-400 hover:text-ink-700"
+            >
+              关闭
+            </button>
+          </div>
+          {clarifyQuestions.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-500">没有扫描到明显的内容缺口。</p>
+          ) : (
+            <div className="mt-3 space-y-3">
+              {clarifyQuestions.map((question) => (
+                <div key={question.id} className="rounded-lg border border-ink-200 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-md bg-ink-100 px-2 py-0.5 text-xs text-ink-600">
+                      第 {question.paragraph} 段 · {question.kind}
+                    </span>
+                    <span className="text-xs text-ink-400">命中：{question.claim}</span>
+                  </div>
+                  <p className="mt-1.5 text-sm text-ink-800">{question.question}</p>
+                  <textarea
+                    value={clarifyAnswers[question.id] ?? ""}
+                    onChange={(e) =>
+                      setClarifyAnswers((prev) => ({
+                        ...prev,
+                        [question.id]: e.target.value,
+                      }))
+                    }
+                    placeholder={`例如：${question.suggestions.join("、")}`}
+                    className="mt-2 h-20 w-full resize-y rounded-lg border border-ink-200 bg-ink-50/40 p-2 text-sm leading-6 text-ink-800 outline-none focus:border-accent-500 focus:bg-white"
+                  />
+                </div>
+              ))}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleApplyFacts}
+                  className="rounded-lg bg-accent-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-700"
+                >
+                  保存补充内容
+                </button>
+                <span className="text-xs text-ink-400">
+                  没填的问题会跳过，原文保持原有概括程度。
+                </span>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -604,6 +796,60 @@ export default function WorkspacePage() {
                     {item.count}
                   </span>
                 </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
+      {(contentReport || structureChanges.length > 0) && (
+        <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+          <h2 className="text-sm font-semibold text-ink-900">内容与结构核验</h2>
+          {contentReport && (
+            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                补充事实{" "}
+                <strong className="text-ink-900">
+                  {contentReport.facts_used}/{contentReport.facts_provided}
+                </strong>
+              </span>
+              <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                数字{" "}
+                <strong className="text-ink-900">
+                  {contentReport.density_before.numbers ?? 0} →{" "}
+                  {contentReport.density_after.numbers ?? 0}
+                </strong>
+              </span>
+              <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                引用{" "}
+                <strong className="text-ink-900">
+                  {contentReport.density_before.citations ?? 0} →{" "}
+                  {contentReport.density_after.citations ?? 0}
+                </strong>
+              </span>
+              <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                局限/案例{" "}
+                <strong className="text-ink-900">
+                  {(contentReport.density_before.limitations ?? 0) +
+                    (contentReport.density_before.examples ?? 0)}{" "}
+                  →{" "}
+                  {(contentReport.density_after.limitations ?? 0) +
+                    (contentReport.density_after.examples ?? 0)}
+                </strong>
+              </span>
+            </div>
+          )}
+          {contentReport?.warnings && contentReport.warnings.length > 0 && (
+            <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-amber-700">
+              {contentReport.warnings.slice(0, 6).map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          )}
+          {structureChanges.length > 0 && (
+            <ul className="mt-2 list-inside list-disc space-y-0.5 text-xs text-ink-600">
+              {structureChanges.map((item, index) => (
+                <li key={index}>{item}</li>
               ))}
             </ul>
           )}

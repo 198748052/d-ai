@@ -18,6 +18,7 @@ __pycache__/
 data/app.db
 data/app.db-journal
 data/secret.key
+data/calibration.json
 data/models/
 .env
 

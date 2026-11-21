@@ -16,6 +16,7 @@ from .routers import (
     admin,
     auth,
     credits,
+    detector,
     errors,
     export,
     features,
@@ -59,6 +60,7 @@ app.include_router(export.router)
 app.include_router(lessons.router)
 app.include_router(auth.router)
 app.include_router(credits.router)
+app.include_router(detector.router)
 app.include_router(admin.router)
 app.include_router(update.router)
 app.include_router(update.webhook_router)

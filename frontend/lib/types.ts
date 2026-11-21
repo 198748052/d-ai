@@ -86,6 +86,46 @@ export interface DiagnosisCompare {
   reached_target: boolean;
 }
 
+export interface ContentFact {
+  kind: "data" | "citation" | "example" | "limitation" | "judgment" | "method" | "other";
+  text: string;
+  anchor?: string;
+}
+
+export interface ClarifyQuestion {
+  id: string;
+  paragraph: number;
+  claim: string;
+  question: string;
+  kind: string;
+  suggestions: string[];
+}
+
+export interface ClarifyResponse {
+  questions: ClarifyQuestion[];
+  content_density: Record<string, number>;
+}
+
+export interface ContentReport {
+  facts_provided: number;
+  facts_used: number;
+  density_before: Record<string, number>;
+  density_after: Record<string, number>;
+  warnings: string[];
+}
+
+export interface CandidateScore {
+  score: number;
+  proxy: number;
+  semantic: number;
+  natural: number;
+  content: number;
+  ai_per_1000?: number;
+  index?: number;
+  paragraph?: number;
+  chunk?: number;
+}
+
 export interface AuditResult {
   total: number;
   items: AuditItem[];
@@ -110,6 +150,9 @@ export interface RewriteResponse {
   warnings: string[];
   ppl_issues: PPLIssue[];
   audit?: AuditResult | null;
+  content_report?: ContentReport | null;
+  structure_changes?: string[];
+  candidate_scores?: CandidateScore[];
 }
 
 export interface RewriteJobStatus {
@@ -122,6 +165,9 @@ export interface RewriteJobStatus {
   audit?: AuditResult | null;
   warnings: string[];
   ppl_issues?: PPLIssue[];
+  content_report?: ContentReport | null;
+  structure_changes?: string[];
+  candidate_scores?: CandidateScore[];
   error: string | null;
 }
 
@@ -197,6 +243,9 @@ export interface LLMSetting {
   ppl_min: number;
   ppl_retry: number;
   ppl_severe: number;
+  candidate_count: number;
+  deep_rewrite: boolean;
+  structure_mode: string;
 }
 
 export interface RewriteLesson {
@@ -273,6 +322,41 @@ export interface RewritePayload {
   banned_words?: string[];
   max_rounds?: number;
   extra_prompt?: string;
+  content_facts?: ContentFact[];
+  candidate_count?: number;
+  deep_rewrite?: boolean;
+  structure_mode?: "preserve" | "flexible";
+}
+
+export interface DetectorFeedback {
+  id: number;
+  created_at: string;
+  user_id?: number | null;
+  job_id?: number | null;
+  detector: string;
+  detector_version: string;
+  checked_at?: string | null;
+  score_before: number;
+  score_after: number;
+  red_sentences: string[];
+  notes: string;
+  proxy_total?: number | null;
+  proxy_features: Record<string, number>;
+}
+
+export interface DetectorJob {
+  id: number;
+  created_at: string;
+  status: string;
+  preview: string;
+  proxy_total?: number | null;
+}
+
+export interface CalibrationResult {
+  sample_count: number;
+  correlations: Record<string, number>;
+  weights: Record<string, unknown>;
+  recommendation: string;
 }
 
 
@@ -296,6 +380,9 @@ export interface JobResult {
   audit: AuditResult | null;
   warnings: string[];
   ppl_issues?: PPLIssue[];
+  content_report?: ContentReport | null;
+  structure_changes?: string[];
+  candidate_scores?: CandidateScore[];
 }
 
 export interface JobDetail extends JobSummary {

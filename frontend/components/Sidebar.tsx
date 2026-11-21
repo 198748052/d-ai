@@ -17,6 +17,7 @@ const ADMIN_ITEMS: Item[] = [
   { href: "/admin", label: "运营后台", icon: "shield" },
   { href: "/presets", label: "改写预设", icon: "sliders" },
   { href: "/features", label: "规则库", icon: "list" },
+  { href: "/detector", label: "检测器反馈", icon: "list" },
   { href: "/settings/llm", label: "LLM 设置", icon: "gear" },
 ];
 

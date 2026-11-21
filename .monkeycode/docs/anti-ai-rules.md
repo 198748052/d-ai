@@ -87,3 +87,37 @@ cd /workspace/backend && python3 -m compileall -q app
 # 前端类型检查
 cd /workspace/frontend && npx tsc --noEmit
 ```
+
+## 八、内容层（2026-11 增补）
+
+- `content.py` 扫描空泛断言、无源权威、缺少实验条件和缺少局限的段落，生成澄清问题。
+- `POST /api/rewrite/clarify` 返回问题清单和内容密度。
+- 前端「扫描内容缺口」面板让用户填写真实数据、引用、案例、失败条件和判断。
+- 填写结果作为 `content_facts` 传给 LLM；提示词只允许使用这些事实，禁止编造。
+- 改写后 `verify_content` 核验事实是否写入、数字/引用/案例/局限数量是否下降。
+
+## 九、结构层（2026-11 增补）
+
+- `structure.py` 在 `structure_mode=flexible` 时执行段落边界调整。
+- 操作包括：拆分过长段落、合并相邻短段、把末尾短句独立成单句段。
+- 保持标题、序号和段落顺序不变，不新增内容。
+- 响应里的 `structure_changes` 记录每次调整。
+
+## 十、句子层（2026-11 增补）
+
+- `deep_rewrite` 开关启用深度改写提示：改变信息顺序、主被动/把字句/无主句交替、删除显式因果连接词、在语义切换点断句。
+- 规则引擎新增 `_split_at_connectives` 和 `_thin_connectives`：把“，因此/然而/从而”变成独立句，并保留第一个连接词、删掉后续重复连接词。
+
+## 十一、模型层（2026-11 增补）
+
+- `candidate_count` 控制每片首轮生成几个候选（默认 3）。
+- `candidate.py` 用语义相似度、代理特征分、自然度和内容事实使用率综合打分，选一个候选。
+- 真实检测器反馈校准后，`data/calibration.json` 中的权重会被候选选择器读取。
+
+## 十二、评估层（2026-11 增补）
+
+- `DetectorFeedback` 表记录检测器名称、版本、送检时间、改写前后分数、标红句和备注。
+- `POST /api/detector/feedback` 录入反馈；`GET /api/detector/feedback` 查看记录。
+- `GET /api/detector/calibration` 计算代理指标与检测分的相关性；`POST /api/detector/calibration` 在样本不少于 20 条时保存权重。
+- 前端 `/detector` 页面提供反馈录入、记录列表和校准结果。
+- 校准脚本：`python3 -c "from app.services.rewriter.calibration import build_report"` 仅用于本地验证，正式入口是 API。

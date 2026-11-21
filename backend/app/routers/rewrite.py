@@ -14,8 +14,17 @@ from ..deps import require_user
 from ..models.models import LLMSetting, RewriteJob, User
 from ..services.credits import InsufficientCredits, billable_chars, charge, grant
 from ..services.errors import record_error
-from ..schemas import AuditRequest, AuditResult, RewriteRequest, RewriteResponse
+from ..schemas import (
+    AuditRequest,
+    AuditResult,
+    ClarifyQuestion,
+    ClarifyRequest,
+    ClarifyResponse,
+    RewriteRequest,
+    RewriteResponse,
+)
 from ..services.rewriter.audit import audit_text
+from ..services.rewriter.content import content_density, scan_content_needs
 from ..services.rewriter.llm_engine import LLMEngine, LLMError
 from ..services.rewriter.jobs import JOBS, get_job, new_job
 from ..services.rewriter.orchestrator import (
@@ -63,6 +72,7 @@ def _save_job(
                     strength=ctx.strength,
                     original=req.text,
                     rewritten=response.rewritten_text,
+                    status="done",
                     charged_chars=charged,
                     params_json=json.dumps(
                         {
@@ -70,6 +80,26 @@ def _save_job(
                             "colloquial": ctx.colloquial,
                             "paragraphs": response.stats.paragraphs,
                             "avg_changed_ratio": response.stats.avg_changed_ratio,
+                            "content_facts": len(req.content_facts or []),
+                            "deep_rewrite": req.deep_rewrite,
+                            "structure_mode": req.structure_mode,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    result_json=json.dumps(
+                        {
+                            "paragraphs": [p.model_dump() for p in response.paragraphs],
+                            "stats": response.stats.model_dump(),
+                            "audit": response.audit.model_dump() if response.audit else None,
+                            "warnings": response.warnings,
+                            "ppl_issues": [p.model_dump() for p in response.ppl_issues],
+                            "content_report": (
+                                response.content_report.model_dump()
+                                if response.content_report
+                                else None
+                            ),
+                            "structure_changes": response.structure_changes,
+                            "candidate_scores": response.candidate_scores,
                         },
                         ensure_ascii=False,
                     ),
@@ -111,6 +141,22 @@ def _refund(user_id: int | None, amount: int, reason: str) -> None:
 
 def _sse(event: str, data: dict) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/rewrite/clarify", response_model=ClarifyResponse)
+def clarify(req: ClarifyRequest, _: User = Depends(require_user)):
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="请先粘贴需要改写的文章")
+    if len(req.text) > MAX_INPUT_CHARS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"文本过长，单次上限 {MAX_INPUT_CHARS} 字，请分段处理",
+        )
+    questions = scan_content_needs(req.text)
+    return ClarifyResponse(
+        questions=[ClarifyQuestion(**question.__dict__) for question in questions],
+        content_density=content_density(req.text),
+    )
 
 
 @router.post("/rewrite")
@@ -361,6 +407,11 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
         job.audit = response.audit.model_dump() if response.audit else None
         job.warnings = list(response.warnings)
         job.ppl_issues = [item.model_dump() for item in response.ppl_issues]
+        job.content_report = (
+            response.content_report.model_dump() if response.content_report else None
+        )
+        job.structure_changes = list(response.structure_changes)
+        job.candidate_scores = list(response.candidate_scores)
         job.status = "done"
         payload = {
             "paragraphs": [p.model_dump() for p in response.paragraphs],
@@ -368,6 +419,11 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
             "audit": response.audit.model_dump() if response.audit else None,
             "warnings": response.warnings,
             "ppl_issues": [item.model_dump() for item in response.ppl_issues],
+            "content_report": (
+                response.content_report.model_dump() if response.content_report else None
+            ),
+            "structure_changes": response.structure_changes,
+            "candidate_scores": response.candidate_scores,
         }
         _update_job_db(
             job.db_id,
@@ -444,6 +500,9 @@ def get_rewrite_job(job_id: str):
         "audit": job.audit,
         "warnings": job.warnings,
         "ppl_issues": job.ppl_issues,
+        "content_report": job.content_report,
+        "structure_changes": job.structure_changes,
+        "candidate_scores": job.candidate_scores,
         "error": job.error,
     }
 

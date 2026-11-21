@@ -5,6 +5,40 @@ from typing import Any, Literal, Optional
 from pydantic import BaseModel, Field
 
 
+class ContentFact(BaseModel):
+    kind: Literal[
+        "data", "citation", "example", "limitation", "judgment", "method", "other"
+    ] = "other"
+    text: str
+    anchor: str = ""
+
+
+class ClarifyQuestion(BaseModel):
+    id: str
+    paragraph: int
+    claim: str
+    question: str
+    kind: str
+    suggestions: list[str] = Field(default_factory=list)
+
+
+class ClarifyRequest(BaseModel):
+    text: str
+
+
+class ClarifyResponse(BaseModel):
+    questions: list[ClarifyQuestion] = Field(default_factory=list)
+    content_density: dict = Field(default_factory=dict)
+
+
+class ContentReport(BaseModel):
+    facts_provided: int = 0
+    facts_used: int = 0
+    density_before: dict = Field(default_factory=dict)
+    density_after: dict = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class RewriteRequest(BaseModel):
     text: str
     preset_id: Optional[int] = None
@@ -20,6 +54,10 @@ class RewriteRequest(BaseModel):
     banned_words: list[str] = Field(default_factory=list)
     max_rounds: int = 1
     extra_prompt: str = ""
+    content_facts: list[ContentFact] = Field(default_factory=list)
+    candidate_count: int = 1
+    deep_rewrite: bool = False
+    structure_mode: Literal["preserve", "flexible"] = "preserve"
 
 
 class ParagraphResult(BaseModel):
@@ -78,6 +116,9 @@ class RewriteResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     ppl_issues: list[PPLIssue] = Field(default_factory=list)
     audit: Optional[AuditResult] = None
+    content_report: Optional[ContentReport] = None
+    structure_changes: list[str] = Field(default_factory=list)
+    candidate_scores: list[dict] = Field(default_factory=list)
 
 
 class LLMSettingIn(BaseModel):
@@ -96,6 +137,9 @@ class LLMSettingIn(BaseModel):
     ppl_min: float = 45.0
     ppl_retry: int = 2
     ppl_severe: float = 20.0
+    candidate_count: int = 1
+    deep_rewrite: bool = False
+    structure_mode: str = "preserve"
 
 
 class LLMSettingOut(BaseModel):
@@ -115,6 +159,9 @@ class LLMSettingOut(BaseModel):
     ppl_min: float = 45.0
     ppl_retry: int = 2
     ppl_severe: float = 20.0
+    candidate_count: int = 1
+    deep_rewrite: bool = False
+    structure_mode: str = "preserve"
 
 
 class LLMTestIn(BaseModel):
@@ -220,6 +267,40 @@ class LocalModelStatusOut(BaseModel):
     dtype: Optional[str] = None
     error: Optional[str] = None
     progress: Optional[str] = None
+
+
+class DetectorFeedbackIn(BaseModel):
+    job_id: Optional[int] = None
+    detector: str
+    detector_version: str = ""
+    checked_at: Optional[str] = None
+    score_before: float = 0.0
+    score_after: float = 0.0
+    red_sentences: list[str] = Field(default_factory=list)
+    notes: str = ""
+
+
+class DetectorFeedbackOut(BaseModel):
+    id: int
+    created_at: str
+    user_id: Optional[int] = None
+    job_id: Optional[int] = None
+    detector: str
+    detector_version: str
+    checked_at: Optional[str] = None
+    score_before: float
+    score_after: float
+    red_sentences: list[str] = Field(default_factory=list)
+    notes: str = ""
+    proxy_total: Optional[float] = None
+    proxy_features: dict = Field(default_factory=dict)
+
+
+class CalibrationOut(BaseModel):
+    sample_count: int
+    correlations: dict = Field(default_factory=dict)
+    weights: dict = Field(default_factory=dict)
+    recommendation: str = ""
 
 
 class PerplexityRequest(BaseModel):

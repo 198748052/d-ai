@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .content import content_density
 from .context_guard import load_whitelist
 from .features import structural_issues, structural_metrics
 from .leakage import scan as scan_leakage
@@ -296,6 +297,7 @@ def diagnose(text: str, context: str = "academic") -> dict:
         "structure": structure,
         "issues": issues,
         "leakage": leakage_hits,
+        "content_density": content_density(text),
         "plan": plan,
     }
 

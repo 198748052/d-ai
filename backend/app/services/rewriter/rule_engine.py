@@ -73,6 +73,7 @@ class RewriteOptions:
     style: str = "general"
     person: str = "keep"
     colloquial: int = 20
+    deep: bool = False
     extra: dict = field(default_factory=dict)
 
 
@@ -119,6 +120,9 @@ class RuleEngine:
         if options.style in {"academic", "official"}:
             academic_len = {"light": 100, "medium": 75, "strong": 60}.get(options.strength, 75)
             result = self._split_long_sentences(result, academic_len, comma_threshold=99)
+            if options.deep:
+                result = self._split_at_connectives(result)
+                result = self._thin_connectives(result)
             result = self._optimize_rhythm(result, target_cv=0.35, max_iter=3)
             # S-02: 降重工具式连续短句在学术语体里是硬信号，合并回正常长度。
             result = merge_short_runs(result)
@@ -283,6 +287,32 @@ class RuleEngine:
         if not right:
             return [sentence]
         return [left] + self._split_one(right, max_len, depth + 1)
+
+    _CONNECTIVE_SPLIT = re.compile(
+        r"[，,](?=(?:因此|所以|然而|但是|不过|从而|进而))"
+    )
+    _LEADING_CONNECTIVE = re.compile(
+        r"^(?:因此|所以|然而|但是|不过|从而|进而)(?:[，,、]\s*)?"
+    )
+
+    def _split_at_connectives(self, text: str) -> str:
+        """把长句里的显式逻辑连接词前置为独立句，改善句长分布。"""
+        return self._CONNECTIVE_SPLIT.sub("。", text)
+
+    def _thin_connectives(self, text: str, keep: int = 1) -> str:
+        """保留前 keep 个句首连接词，其余删掉，让逻辑从上下文推导。"""
+        sentences = [sentence for sentence in split_sentences(text) if sentence.strip()]
+        seen = 0
+        output: list[str] = []
+        for sentence in sentences:
+            match = self._LEADING_CONNECTIVE.match(sentence)
+            if match:
+                if seen < keep:
+                    seen += 1
+                else:
+                    sentence = sentence[match.end() :]
+            output.append(sentence)
+        return "".join(output)
 
     def _merge_short_sentences(self, text: str, max_merges: int = 2) -> str:
         sentences = split_sentences(text)

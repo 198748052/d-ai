@@ -59,6 +59,9 @@ def _to_out(setting: LLMSetting) -> LLMSettingOut:
         ppl_min=float(getattr(setting, "ppl_min", 60.0) or 60.0),
         ppl_retry=int(getattr(setting, "ppl_retry", 2) or 0),
         ppl_severe=float(getattr(setting, "ppl_severe", 25.0) or 25.0),
+        candidate_count=int(getattr(setting, "candidate_count", 1) or 1),
+        deep_rewrite=bool(getattr(setting, "deep_rewrite", False)),
+        structure_mode=getattr(setting, "structure_mode", "preserve") or "preserve",
     )
 
 
@@ -86,6 +89,11 @@ def update_setting(payload: LLMSettingIn, session: Session = Depends(get_session
     setting.ppl_min = max(1.0, payload.ppl_min)
     setting.ppl_retry = max(0, min(5, payload.ppl_retry))
     setting.ppl_severe = max(1.0, min(payload.ppl_min, payload.ppl_severe))
+    setting.candidate_count = max(1, min(5, payload.candidate_count))
+    setting.deep_rewrite = payload.deep_rewrite
+    setting.structure_mode = (
+        payload.structure_mode if payload.structure_mode in {"preserve", "flexible"} else "preserve"
+    )
     if payload.api_key is not None and payload.api_key.strip():
         setting.api_key_enc = encrypt(payload.api_key.strip())
     session.add(setting)

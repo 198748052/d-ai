@@ -12,6 +12,7 @@ from sqlmodel import Session, select
 from ...models.models import FeatureRule, LLMSetting, Preset
 from ...schemas import (
     AuditResult,
+    ContentReport,
     PPLIssue,
     ParagraphResult,
     RewriteRequest,
@@ -21,6 +22,8 @@ from ...schemas import (
 from ..protector import Protector
 from ..segmenter import join_paragraphs, split_paragraphs, split_sentences
 from .audit import audit_text, collect_hits
+from .candidate import select_candidate
+from .content import assign_facts, fact_used, unsourced_count, verify_content
 from .context_guard import ReplacementGuard, Whitelist, load_blacklist, load_whitelist
 from .diagnosis import compare as compare_diagnosis
 from .diagnosis import diagnose
@@ -33,6 +36,7 @@ from .guards import (
 )
 from .leakage import clean as clean_leakage
 from .lessons import recent_lessons, record_lesson
+from .structure import restructure
 from .llm_engine import LLMContext, LLMEngine, LLMError
 from .rule_engine import RewriteOptions, Rule, RuleEngine
 
@@ -104,6 +108,11 @@ class RewriteContext:
     whitelist: Whitelist | None = None
     guard: ReplacementGuard | None = None
     diagnosis_before: dict = field(default_factory=dict)
+    content_facts: list[dict] = field(default_factory=list)
+    facts_by_paragraph: dict[int, list[dict]] = field(default_factory=dict)
+    candidate_count: int = 1
+    deep_rewrite: bool = False
+    structure_mode: str = "preserve"
 
 
 def load_rules(session: Session, lexicon_scope: str, style: str = "general") -> list[Rule]:
@@ -193,6 +202,19 @@ def build_context(req: RewriteRequest, session: Session) -> RewriteContext:
         ctx.ppl_retry = max(0, int(getattr(setting, "ppl_retry", 2) or 0))
         ctx.ppl_severe = float(getattr(setting, "ppl_severe", 25.0) or 25.0)
     ctx.lessons = recent_lessons(ctx.style)
+    ctx.content_facts = [
+        fact.model_dump() if hasattr(fact, "model_dump") else dict(fact)
+        for fact in (req.content_facts or [])
+    ]
+    ctx.candidate_count = max(1, min(5, int(req.candidate_count or 1)))
+    ctx.deep_rewrite = bool(req.deep_rewrite)
+    ctx.structure_mode = req.structure_mode if req.structure_mode in {"preserve", "flexible"} else "preserve"
+    if setting is not None:
+        if not req.candidate_count:
+            ctx.candidate_count = max(1, min(5, int(getattr(setting, "candidate_count", 1) or 1)))
+        ctx.deep_rewrite = bool(getattr(setting, "deep_rewrite", False)) and bool(req.deep_rewrite)
+        if req.structure_mode == "preserve":
+            ctx.structure_mode = getattr(setting, "structure_mode", "preserve") or "preserve"
 
     ctx.whitelist = load_whitelist()
     ctx.guard = ReplacementGuard(load_blacklist())
@@ -328,6 +350,7 @@ async def _rewrite_one(
     semaphore: asyncio.Semaphore,
     pause_event: asyncio.Event | None = None,
     ppl_issues: list[dict] | None = None,
+    candidate_scores: list[dict] | None = None,
 ) -> ParagraphResult:
     async with semaphore:
         if pause_event is not None:
@@ -349,6 +372,7 @@ async def _rewrite_one(
                 + "、".join(item["category"] for item in leak_hits)
             )
         diag_before = diagnose(source, ctx.style)
+        paragraph_facts = list(ctx.facts_by_paragraph.get(index, []))
 
         protector = Protector(ctx.protect_terms)
         masked, spans = protector.protect(source)
@@ -360,6 +384,7 @@ async def _rewrite_one(
             style=ctx.style,
             person=ctx.person,
             colloquial=ctx.colloquial,
+            deep=ctx.deep_rewrite,
         )
 
         if ctx.use_rule_engine and ctx.mode in {"rule", "hybrid"}:
@@ -380,6 +405,8 @@ async def _rewrite_one(
                 lessons=list(ctx.lessons),
                 issues=list(diag_before.get("issues") or []),
                 plan=list(diag_before.get("plan") or []),
+                content_facts=paragraph_facts,
+                deep_rewrite=ctx.deep_rewrite,
             )
             academic = ctx.style in {"academic", "official"}
             chunks = _chunk_sentences(
@@ -388,30 +415,60 @@ async def _rewrite_one(
                 max_sentences=3,
             )
             rewritten_chunks: list[str] = []
-            for chunk in chunks:
+            for chunk_index, chunk in enumerate(chunks):
                 piece = chunk
                 hits = collect_hits(piece, audit_engine, whitelist=ctx.whitelist)
                 for round_index in range(ctx.max_rounds):
-                    try:
-                        candidate = await llm.rewrite_paragraph(
+                    candidates: list[str] = []
+                    variants = max(1, ctx.candidate_count) if round_index == 0 else 1
+                    for variant in range(variants):
+                        temperature = None
+                        if academic:
+                            temperature = min(1.7, 1.3 + 0.12 * variant)
+                        try:
+                            candidate = await llm.rewrite_paragraph(
+                                piece,
+                                llm_ctx,
+                                round_index,
+                                hits=hits,
+                                context=current,
+                                temperature=temperature,
+                            )
+                        except LLMError as exc:
+                            if variant == 0:
+                                warnings.append(f"第 {index + 1} 段 LLM 改写失败：{exc}")
+                            continue
+                        if not LLMEngine.placeholders_intact(piece, candidate):
+                            continue
+                        candidate = _clean_candidate(piece, candidate)
+                        ok, reason = acceptable(
                             piece,
-                            llm_ctx,
-                            round_index,
-                            hits=hits,
-                            context=current,
+                            candidate,
+                            max_ratio=2.5 if paragraph_facts else 1.5,
+                            min_ratio=0.6,
+                            allow_overfit=bool(paragraph_facts),
                         )
-                    except LLMError as exc:
-                        warnings.append(f"第 {index + 1} 段 LLM 改写失败：{exc}")
+                        if not ok:
+                            if variant == 0 and round_index >= ctx.max_rounds - 1:
+                                warnings.append(
+                                    f"第 {index + 1} 段候选未通过（{reason}），已保留上一轮结果"
+                                )
+                            continue
+                        candidates.append(candidate)
+                    if not candidates:
                         break
-                    if not LLMEngine.placeholders_intact(piece, candidate):
-                        warnings.append(f"第 {index + 1} 段占位符未完整保留，已保留上一轮结果")
-                        break
-                    candidate = _clean_candidate(piece, candidate)
-                    if not _acceptable(piece, candidate):
-                        if round_index >= ctx.max_rounds - 1:
-                            warnings.append(f"第 {index + 1} 段改写结果长度异常或重复，已保留上一轮结果")
-                        continue
-                    piece = candidate
+                    if len(candidates) == 1:
+                        best = candidates[0]
+                    else:
+                        best, scores = select_candidate(
+                            piece, candidates, diag_before, paragraph_facts
+                        )
+                        for score in scores:
+                            score["paragraph"] = index + 1
+                            score["chunk"] = chunk_index + 1
+                            if candidate_scores is not None:
+                                candidate_scores.append(score)
+                    piece = best
                     llm_used = True
                     hits = collect_hits(piece, audit_engine, whitelist=ctx.whitelist)
                     if not hits:
@@ -551,6 +608,52 @@ async def _rewrite_one(
             restored = source
             warnings.append(f"第 {index + 1} 段改写结果为空，已保留原文")
 
+        content_report = verify_content(
+            source,
+            restored,
+            paragraph_facts,
+            unsourced_before=unsourced_count(source),
+            unsourced_after=unsourced_count(restored),
+        )
+        if (
+            paragraph_facts
+            and llm is not None
+            and llm_ctx is not None
+            and content_report["facts_used"] < content_report["facts_provided"]
+        ):
+            unused = [
+                fact
+                for fact in paragraph_facts
+                if not fact_used(str(fact.get("text") or ""), restored)
+            ]
+            try:
+                integrated = await llm.integrate_facts(restored, unused, llm_ctx)
+                if LLMEngine.placeholders_intact(masked, integrated):
+                    integrated = _clean_candidate(restored, integrated)
+                    ok, _reason = acceptable(
+                        restored,
+                        integrated,
+                        max_ratio=2.0,
+                        min_ratio=0.6,
+                        allow_overfit=bool(paragraph_facts),
+                    )
+                    if ok:
+                        integrated_report = verify_content(
+                            source,
+                            integrated,
+                            paragraph_facts,
+                            unsourced_before=unsourced_count(source),
+                            unsourced_after=unsourced_count(integrated),
+                        )
+                        if integrated_report["facts_used"] >= content_report["facts_used"]:
+                            restored = integrated
+                            content_report = integrated_report
+                            warnings.append(f"第 {index + 1} 段补充写入了用户提供的事实")
+            except LLMError:
+                pass
+        for item in content_report.get("warnings") or []:
+            warnings.append(f"第 {index + 1} 段：{item}")
+
         diag_after = diagnose(restored, ctx.style)
         quality = quality_compare(diag_before, diag_after)
         if "新增连续短句" in quality["regressions"]:
@@ -590,6 +693,9 @@ def _build_response(
     results: list[ParagraphResult],
     warnings: list[str],
     ppl_issues: list[dict] | None = None,
+    content_report: dict | None = None,
+    structure_changes: list[str] | None = None,
+    candidate_scores: list[dict] | None = None,
 ) -> RewriteResponse:
     original_chars = sum(len(r.original) for r in results)
     rewritten_chars = sum(len(r.rewritten) for r in results)
@@ -607,6 +713,9 @@ def _build_response(
         stats=stats,
         warnings=warnings,
         ppl_issues=[PPLIssue(**item) for item in (ppl_issues or [])],
+        content_report=content_report,
+        structure_changes=structure_changes or [],
+        candidate_scores=candidate_scores or [],
     )
 
 
@@ -636,10 +745,24 @@ async def rewrite_document(
     if not paragraphs:
         return _build_response([], warnings or ["没有解析到任何段落，请检查输入内容"])
 
+    ctx.facts_by_paragraph = assign_facts(ctx.content_facts, paragraphs)
+    candidate_scores: list[dict] = []
+
     semaphore = asyncio.Semaphore(max(1, ctx.concurrency))
     tasks = [
         asyncio.create_task(
-            _rewrite_one(i, p, ctx, rules, llm, warnings, semaphore, pause_event, ppl_issues)
+            _rewrite_one(
+                i,
+                p,
+                ctx,
+                rules,
+                llm,
+                warnings,
+                semaphore,
+                pause_event,
+                ppl_issues,
+                candidate_scores,
+            )
         )
         for i, p in enumerate(paragraphs)
     ]
@@ -652,7 +775,24 @@ async def rewrite_document(
             await emit(result)
 
     ordered = [r for r in results if r is not None]
-    response = _build_response(ordered, warnings, ppl_issues)
+    structure_changes: list[str] = []
+    if ctx.structure_mode == "flexible":
+        ordered, structure_changes = restructure(ordered)
+        for change in structure_changes:
+            warnings.append(f"结构调整：{change}")
+
+    response = _build_response(ordered, warnings, ppl_issues, candidate_scores=candidate_scores)
+    content_report = verify_content(
+        cleaned_text,
+        response.rewritten_text,
+        ctx.content_facts,
+        unsourced_before=unsourced_count(cleaned_text),
+        unsourced_after=unsourced_count(response.rewritten_text),
+    )
+    response.content_report = ContentReport(**content_report)
+    for item in content_report.get("warnings") or []:
+        response.warnings.append(f"内容核验：{item}")
+
     audit_result = await asyncio.to_thread(
         audit_text,
         response.rewritten_text,

@@ -9,6 +9,7 @@ import httpx
 
 from ...core.crypto import decrypt
 from ...models.models import LLMSetting
+from .content import fact_lines
 
 _PREFIX_RE = re.compile(r"^\s*(改写后|改写结果|润色后|输出)[:：]\s*")
 _QUOTE_PAIRS = [("“", "”"), ('"', '"'), ("「", "」"), ("『", "』")]
@@ -48,6 +49,8 @@ class LLMContext:
     lessons: list[str] = None
     issues: list[str] = None
     plan: list[dict] = None
+    content_facts: list[dict] = None
+    deep_rewrite: bool = True
 
     def __post_init__(self) -> None:
         if self.banned_words is None:
@@ -58,6 +61,8 @@ class LLMContext:
             self.issues = []
         if self.plan is None:
             self.plan = []
+        if self.content_facts is None:
+            self.content_facts = []
 
 
 class LLMEngine:
@@ -170,6 +175,7 @@ class LLMEngine:
         round_index: int = 0,
         hits: list[dict] | None = None,
         context: str | None = None,
+        temperature: float | None = None,
     ) -> str:
         messages = [
             {
@@ -178,7 +184,8 @@ class LLMEngine:
             },
             {"role": "user", "content": masked_text},
         ]
-        temperature = 1.3 if ctx.style in {"academic", "official"} else None
+        if temperature is None:
+            temperature = 1.3 if ctx.style in {"academic", "official"} else None
         raw = await self._chat(messages, temperature=temperature)
         cleaned = self._postprocess(raw)
         if not cleaned:
@@ -242,6 +249,31 @@ class LLMEngine:
             {"role": "user", "content": text},
         ]
         raw = await self._chat(messages, temperature=0.9)
+        cleaned = self._postprocess(raw)
+        if not cleaned:
+            raise LLMError("LLM 返回内容为空")
+        return cleaned
+
+    async def integrate_facts(
+        self,
+        text: str,
+        facts: list[dict],
+        ctx: LLMContext,
+    ) -> str:
+        lines = [
+            "你是审稿编辑。下面这段文字没有使用用户补充的事实。",
+            "请把下列事实自然融入正文，保持原有论证顺序、术语、数字、引用和段落结构。",
+            "只能使用用户提供的事实，禁止编造新的数字、引用、案例。",
+            "只输出修改后的正文，不要解释、不要编号、不要换行。",
+            "",
+            "用户补充的事实：",
+            fact_lines(facts),
+        ]
+        messages = [
+            {"role": "system", "content": "\n".join(lines)},
+            {"role": "user", "content": text},
+        ]
+        raw = await self._chat(messages, temperature=1.0)
         cleaned = self._postprocess(raw)
         if not cleaned:
             raise LLMError("LLM 返回内容为空")
@@ -332,6 +364,23 @@ class LLMEngine:
                     *[f"- {item}" for item in ctx.issues[:8]],
                 ]
             )
+
+    @staticmethod
+    def _append_content(lines: list[str], ctx: LLMContext) -> None:
+        if not ctx.content_facts:
+            return
+        lines.extend(
+            [
+                "",
+                "用户补充的事实（只能使用这些，禁止编造新的数字、引用、案例）：",
+                fact_lines(ctx.content_facts),
+                "",
+                "内容注入要求：",
+                "- 把用户提供的事实自然写进对应段落，保持原有论证顺序。",
+                "- 数字、样本量、实验条件、引用、案例必须与用户提供的内容完全一致。",
+                "- 用户没有提供的具体信息，保持原文的概括程度，不要自行补全。",
+            ]
+        )
 
     async def rewrite_low_perplexity(
         self,
@@ -454,6 +503,20 @@ class LLMEngine:
             "- 增加限定语：在…条件下/就…而言/在一定程度上（每段1-2处）。",
             "- 保持克制：不使用“非常/特别/极其”等口语强调。",
             "",
+            *(
+                [
+                    "",
+                    "深度改写要求（本轮启用）：",
+                    "- 改变信息顺序：把结论前置或后置，调整从句顺序，避免只做同义替换。",
+                    "- 主动句、被动句、把字句、无主句交替，避免连续同一种句式。",
+                    "- 删除显式逻辑连接词：因此/然而/此外/同时/从而/进而，让语义自然衔接。",
+                    "- 长句在语义切换点断开，短句只在强调处出现。",
+                    "- 改写后句子结构要变，信息点、数字、引用和术语保持不变。",
+                ]
+                if ctx.deep_rewrite
+                else []
+            ),
+            "",
             "写作节奏要求（最重要）：",
             "- 句长必须有明显差异：同一段里至少有一句超过 40 字；允许出现 15 字以内的短句，但短句必须承载新的信息或判断。",
             "- 连续三句长度接近时，必须拆开或合并其中一句。",
@@ -512,6 +575,7 @@ class LLMEngine:
             )
         if ctx.extra_prompt:
             lines.append(f"额外要求：{ctx.extra_prompt}")
+        self._append_content(lines, ctx)
         self._append_diagnosis(lines, ctx)
         self._append_lessons(lines, ctx)
         self._append_constraints(lines, hits, context)
@@ -599,6 +663,7 @@ class LLMEngine:
             )
         if ctx.extra_prompt:
             lines.append(f"额外要求：{ctx.extra_prompt}")
+        self._append_content(lines, ctx)
         self._append_diagnosis(lines, ctx)
         self._append_lessons(lines, ctx)
         self._append_constraints(lines, hits, context)
