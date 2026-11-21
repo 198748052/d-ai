@@ -40,9 +40,9 @@ class LLMSetting(SQLModel, table=True):
     local_enabled: bool = DEFAULT_LOCAL_ENABLED
     local_model: str = DEFAULT_LOCAL_MODEL
     local_dtype: str = DEFAULT_LOCAL_DTYPE
-    ppl_min: float = 60.0
+    ppl_min: float = 45.0
     ppl_retry: int = 2
-    ppl_severe: float = 25.0
+    ppl_severe: float = 20.0
 
 
 class User(SQLModel, table=True):

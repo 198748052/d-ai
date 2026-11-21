@@ -90,9 +90,9 @@ class LLMSettingIn(BaseModel):
     local_enabled: bool = False
     local_model: str = "Qwen/Qwen2.5-1.5B"
     local_dtype: str = "float16"
-    ppl_min: float = 60.0
+    ppl_min: float = 45.0
     ppl_retry: int = 2
-    ppl_severe: float = 25.0
+    ppl_severe: float = 20.0
 
 
 class LLMSettingOut(BaseModel):
@@ -109,9 +109,9 @@ class LLMSettingOut(BaseModel):
     local_enabled: bool = False
     local_model: str = "Qwen/Qwen2.5-1.5B"
     local_dtype: str = "float16"
-    ppl_min: float = 60.0
+    ppl_min: float = 45.0
     ppl_retry: int = 2
-    ppl_severe: float = 25.0
+    ppl_severe: float = 20.0
 
 
 class LLMTestIn(BaseModel):

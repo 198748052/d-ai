@@ -235,6 +235,7 @@ async def _enforce_perplexity(
     protector: Protector,
     spans: list[str],
     ppl_issues: list[dict],
+    audit_engine: RuleEngine,
 ) -> str:
     """Regenerate sentences whose local-model perplexity is too low."""
     if not ctx.use_local_model or llm is None or llm_ctx is None or len(current) < 60:
@@ -310,7 +311,9 @@ async def _enforce_perplexity(
         if not LLMEngine.placeholders_intact(masked, candidate):
             continue
         candidate = _clean_candidate(current, candidate)
-        if not _acceptable(current, candidate, max_ratio=1.6, min_ratio=0.55):
+        if not _acceptable(current, candidate, max_ratio=1.25, min_ratio=0.75):
+            continue
+        if len(collect_hits(candidate, audit_engine)) > len(collect_hits(current, audit_engine)):
             continue
         current = candidate
     return current
@@ -344,6 +347,7 @@ async def _rewrite_one(
         masked, spans = protector.protect(paragraph)
         current = masked
         engine = RuleEngine(rules)
+        audit_engine = RuleEngine(rules)
         options = RewriteOptions(
             strength=ctx.strength,
             style=ctx.style,
@@ -368,7 +372,6 @@ async def _rewrite_one(
                 extra_prompt=ctx.extra_prompt,
                 lessons=list(ctx.lessons),
             )
-            audit_engine = RuleEngine(rules)
             academic = ctx.style in {"academic", "official"}
             chunks = _chunk_sentences(
                 current,
@@ -504,7 +507,23 @@ async def _rewrite_one(
             protector,
             spans,
             ppl_issues if ppl_issues is not None else [],
+            audit_engine,
         )
+
+        if llm is not None and llm_ctx is not None:
+            remaining = collect_hits(current, audit_engine)
+            if remaining:
+                try:
+                    candidate = await llm.correct_paragraph(current, remaining, llm_ctx)
+                    if (
+                        LLMEngine.placeholders_intact(masked, candidate)
+                        and _acceptable(current, candidate)
+                        and len(collect_hits(candidate, audit_engine))
+                        <= len(remaining)
+                    ):
+                        current = candidate
+                except LLMError:
+                    pass
 
         restored = protector.restore(current, spans)
         if not restored.strip():

@@ -37,9 +37,9 @@ const EMPTY: FormState = {
   local_enabled: false,
   local_model: "Qwen/Qwen2.5-1.5B",
   local_dtype: "float16",
-  ppl_min: 60,
+  ppl_min: 45,
   ppl_retry: 2,
-  ppl_severe: 25,
+  ppl_severe: 20,
 };
 
 const PROVIDERS = [
@@ -83,9 +83,9 @@ export default function LLMSettingsPage() {
         local_enabled: data.local_enabled ?? false,
         local_model: data.local_model ?? "Qwen/Qwen2.5-1.5B",
         local_dtype: data.local_dtype ?? "float16",
-        ppl_min: data.ppl_min ?? 60,
+        ppl_min: data.ppl_min ?? 45,
         ppl_retry: data.ppl_retry ?? 2,
-        ppl_severe: data.ppl_severe ?? 25,
+        ppl_severe: data.ppl_severe ?? 20,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");

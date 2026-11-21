@@ -188,7 +188,10 @@ class LLMEngine:
     ) -> str:
         sentences = [item for item in re.split(r"(?<=[。！？!?；;…])", text) if item.strip()]
         lengths = [len(item) for item in sentences]
-        listing = "、".join(str(length) for length in lengths)
+        listing = "\n".join(
+            f"{index + 1}. [{lengths[index]}字] {sentences[index][:50]}"
+            for index in range(len(sentences))
+        )
         system = (
             "你是文字编辑。下面这段文字的句子长度过于接近，机器感偏重。\n"
             f"当前句长变异系数 CV={metrics.get('cv')}，目标是不低于 0.45。\n"
@@ -199,7 +202,8 @@ class LLMEngine:
             "- 调整后至少一句超过 40 字，至少一句少于 15 字；\n"
             "- 拆分后每句要有完整的主谓结构，避免残句；\n"
             "- 只输出修改后的正文，不要解释、不要换行、不要编号。\n"
-            f"当前每句字数（按句序）：{listing}"
+            "句子清单：\n"
+            f"{listing}"
             + (
                 "\n本段还存在以下问题，请一并修正：\n"
                 + "\n".join(f"- {item}" for item in issues)
@@ -315,6 +319,7 @@ class LLMEngine:
         lines = [
             "你是审稿编辑。下面这段文字里有些句子过于可预测，读起来像模板拼出来的（困惑度偏低）。",
             "请重写这些句子：换具体说法、调整语序、补充限定条件或细节，让它们更像真人写的。",
+            "不要扩写，不要新增原文没有的信息；改写后整段长度与原文接近（±10% 以内）。",
             "其余句子尽量保持不动，原意、术语、数据、引用、占位符和段落结构不变。",
             "只输出整段正文，不要解释、不要编号、不要换行。",
             "",
