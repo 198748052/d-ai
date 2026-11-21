@@ -15,6 +15,7 @@ interface FormState {
   max_tokens: number;
   concurrency: number;
   timeout: number;
+  reasoning_effort: string;
   local_enabled: boolean;
   local_model: string;
   local_dtype: string;
@@ -32,6 +33,7 @@ const EMPTY: FormState = {
   max_tokens: 4096,
   concurrency: 3,
   timeout: 120,
+  reasoning_effort: "medium",
   local_enabled: false,
   local_model: "Qwen/Qwen2.5-1.5B",
   local_dtype: "float16",
@@ -77,6 +79,7 @@ export default function LLMSettingsPage() {
         max_tokens: data.max_tokens,
         concurrency: data.concurrency,
         timeout: data.timeout,
+        reasoning_effort: data.reasoning_effort ?? "medium",
         local_enabled: data.local_enabled ?? false,
         local_model: data.local_model ?? "Qwen/Qwen2.5-1.5B",
         local_dtype: data.local_dtype ?? "float16",
@@ -129,6 +132,7 @@ export default function LLMSettingsPage() {
         max_tokens: form.max_tokens,
         concurrency: form.concurrency,
         timeout: form.timeout,
+        reasoning_effort: form.reasoning_effort,
         local_enabled: form.local_enabled,
         local_model: form.local_model,
         local_dtype: form.local_dtype,
@@ -366,6 +370,18 @@ export default function LLMSettingsPage() {
               onChange={(e) => update("max_tokens", Number(e.target.value))}
               className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-ink-500">推理强度</label>
+            <select
+              value={form.reasoning_effort}
+              onChange={(e) => update("reasoning_effort", e.target.value)}
+              className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm outline-none focus:border-accent-500"
+            >
+              <option value="low">低（快，改写效果较弱）</option>
+              <option value="medium">中（推荐）</option>
+              <option value="high">高（慢，效果更好）</option>
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-500">并发数</label>

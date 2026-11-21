@@ -36,6 +36,7 @@ class LLMSetting(SQLModel, table=True):
     max_tokens: int = 4096
     concurrency: int = 3
     timeout: int = 120
+    reasoning_effort: str = "medium"
     local_enabled: bool = DEFAULT_LOCAL_ENABLED
     local_model: str = DEFAULT_LOCAL_MODEL
     local_dtype: str = DEFAULT_LOCAL_DTYPE

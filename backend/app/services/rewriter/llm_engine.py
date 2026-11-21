@@ -63,6 +63,7 @@ class LLMEngine:
         temperature: float = 1.2,
         max_tokens: int = 4096,
         timeout: int = 120,
+        reasoning_effort: str = "medium",
     ):
         self.base_url = (base_url or "").rstrip("/")
         self.api_key = api_key or ""
@@ -70,7 +71,7 @@ class LLMEngine:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
-        self.reasoning_effort = "low"
+        self.reasoning_effort = reasoning_effort if reasoning_effort in {"low", "medium", "high"} else "medium"
         self._effort_supported = True
 
     @classmethod
@@ -82,6 +83,7 @@ class LLMEngine:
             temperature=setting.temperature,
             max_tokens=setting.max_tokens,
             timeout=setting.timeout,
+            reasoning_effort=getattr(setting, "reasoning_effort", "medium") or "medium",
         )
 
     @property
@@ -93,6 +95,7 @@ class LLMEngine:
         messages: list[dict],
         temperature: float | None = None,
         max_tokens: int | None = None,
+        reasoning_effort: str | None = None,
     ) -> str:
         if not self.configured:
             raise LLMError("LLM 未配置，请先在设置页填写 Base URL、模型和 API Key")
@@ -112,7 +115,7 @@ class LLMEngine:
                 "max_tokens": budget,
             }
             if self._effort_supported:
-                payload["reasoning_effort"] = self.reasoning_effort
+                payload["reasoning_effort"] = reasoning_effort or self.reasoning_effort
             try:
                 async with httpx.AsyncClient(timeout=self.timeout) as client:
                     resp = await client.post(url, headers=headers, json=payload)
@@ -208,7 +211,7 @@ class LLMEngine:
             {"role": "system", "content": system},
             {"role": "user", "content": text},
         ]
-        raw = await self._chat(messages, temperature=1.1)
+        raw = await self._chat(messages, temperature=1.1, reasoning_effort="low")
         cleaned = self._postprocess(raw)
         if not cleaned:
             raise LLMError("LLM 返回内容为空")
@@ -241,6 +244,7 @@ class LLMEngine:
         await self._chat(
             [{"role": "user", "content": "回复两个字：正常"}],
             temperature=0,
+            reasoning_effort="low",
         )
         return int((time.perf_counter() - start) * 1000)
 

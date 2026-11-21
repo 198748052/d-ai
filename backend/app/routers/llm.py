@@ -52,6 +52,7 @@ def _to_out(setting: LLMSetting) -> LLMSettingOut:
         max_tokens=setting.max_tokens,
         concurrency=setting.concurrency,
         timeout=setting.timeout,
+        reasoning_effort=getattr(setting, "reasoning_effort", "medium") or "medium",
         local_enabled=getattr(setting, "local_enabled", False),
         local_model=getattr(setting, "local_model", "Qwen/Qwen2.5-1.5B"),
         local_dtype=getattr(setting, "local_dtype", "float16"),
@@ -76,6 +77,9 @@ def update_setting(payload: LLMSettingIn, session: Session = Depends(get_session
     setting.max_tokens = payload.max_tokens
     setting.concurrency = max(1, payload.concurrency)
     setting.timeout = max(5, payload.timeout)
+    setting.reasoning_effort = (
+        payload.reasoning_effort if payload.reasoning_effort in {"low", "medium", "high"} else "medium"
+    )
     setting.local_enabled = payload.local_enabled
     setting.local_model = payload.local_model.strip() or "Qwen/Qwen2.5-1.5B"
     setting.local_dtype = payload.local_dtype or "float16"

@@ -73,6 +73,7 @@ This file records user instructions, preferences, and project knowledge for futu
 - Date: 2026-11-19
 - Category: Troubleshooting / Environment Configuration
 - Instructions:
+  - 推理强度 `reasoning_effort` 默认 medium；改成 low 会明显降低 AI 特征清除效果（实测残留模板词），只在追求速度时用 low
   - LLM 设置：`/api/settings/llm`，当前网关 `https://wbapi.topsygf.cn/v1`，模型 `deepseek-v4.1-flash-sg`
   - API Key 用 Fernet 加密存 `data/app.db`，密钥文件 `data/secret.key`
   - 当前网关不返回 `logprobs`，无法直接用 API 算困惑度，所以用本地模型算

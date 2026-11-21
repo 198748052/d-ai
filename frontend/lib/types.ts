@@ -148,6 +148,7 @@ export interface LLMSetting {
   max_tokens: number;
   concurrency: number;
   timeout: number;
+  reasoning_effort: string;
   local_enabled: boolean;
   local_model: string;
   local_dtype: string;
