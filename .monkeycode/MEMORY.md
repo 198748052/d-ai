@@ -144,3 +144,12 @@ This file records user instructions, preferences, and project knowledge for futu
   - 后端测试：`cd /workspace/backend && python3 -m unittest discover -s tests -q`
   - 前端类型检查：`cd /workspace/frontend && npx tsc --noEmit`
   - 前端改了页面后需要 `npm run build` 再重启服务，`next start` 不会自动读取源码改动
+
+### 固定参数与只读设置
+- Date: 2026-11-21
+- Category: Workflow & Collaboration / Environment Configuration
+- Instructions:
+  - 稳定模式固定为单候选、关闭深度改写、保持段落结构；后端 `seed()` 启动时会把 LLMSetting 这些字段恢复为固定值
+  - 生成参数固定：温度 1.2、max_tokens 4096、并发 3、超时 120、推理强度 medium；困惑度阈值固定 45/2/20
+  - Web 端已移除工作台的深度改写/结构/候选开关，`/presets` 改为只读，`/settings/llm` 移除生成参数和阈值输入
+  - `PUT /api/presets/{id}` 返回 400；`PUT /api/settings/llm` 会忽略前端传入的固定字段

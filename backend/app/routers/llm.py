@@ -29,6 +29,21 @@ router = APIRouter(
     dependencies=[Depends(require_admin)],
 )
 
+# 这些参数已固定，Web 端不再开放修改，避免误改导致效果回退。
+FIXED_SETTINGS = {
+    "temperature": 1.2,
+    "max_tokens": 4096,
+    "concurrency": 3,
+    "timeout": 120,
+    "reasoning_effort": "medium",
+    "ppl_min": 45.0,
+    "ppl_retry": 2,
+    "ppl_severe": 20.0,
+    "candidate_count": 1,
+    "deep_rewrite": False,
+    "structure_mode": "preserve",
+}
+
 
 def _get_or_create(session: Session) -> LLMSetting:
     setting = session.get(LLMSetting, 1)
@@ -76,24 +91,20 @@ def update_setting(payload: LLMSettingIn, session: Session = Depends(get_session
     setting.provider = payload.provider
     setting.base_url = payload.base_url.strip()
     setting.model = payload.model.strip()
-    setting.temperature = payload.temperature
-    setting.max_tokens = payload.max_tokens
-    setting.concurrency = max(1, payload.concurrency)
-    setting.timeout = max(5, payload.timeout)
-    setting.reasoning_effort = (
-        payload.reasoning_effort if payload.reasoning_effort in {"low", "medium", "high"} else "medium"
-    )
+    setting.temperature = FIXED_SETTINGS["temperature"]
+    setting.max_tokens = FIXED_SETTINGS["max_tokens"]
+    setting.concurrency = FIXED_SETTINGS["concurrency"]
+    setting.timeout = FIXED_SETTINGS["timeout"]
+    setting.reasoning_effort = FIXED_SETTINGS["reasoning_effort"]
     setting.local_enabled = payload.local_enabled
     setting.local_model = payload.local_model.strip() or "Qwen/Qwen2.5-1.5B"
     setting.local_dtype = payload.local_dtype or "float16"
-    setting.ppl_min = max(1.0, payload.ppl_min)
-    setting.ppl_retry = max(0, min(5, payload.ppl_retry))
-    setting.ppl_severe = max(1.0, min(payload.ppl_min, payload.ppl_severe))
-    setting.candidate_count = max(1, min(5, payload.candidate_count))
-    setting.deep_rewrite = payload.deep_rewrite
-    setting.structure_mode = (
-        payload.structure_mode if payload.structure_mode in {"preserve", "flexible"} else "preserve"
-    )
+    setting.ppl_min = FIXED_SETTINGS["ppl_min"]
+    setting.ppl_retry = FIXED_SETTINGS["ppl_retry"]
+    setting.ppl_severe = FIXED_SETTINGS["ppl_severe"]
+    setting.candidate_count = FIXED_SETTINGS["candidate_count"]
+    setting.deep_rewrite = FIXED_SETTINGS["deep_rewrite"]
+    setting.structure_mode = FIXED_SETTINGS["structure_mode"]
     if payload.api_key is not None and payload.api_key.strip():
         setting.api_key_enc = encrypt(payload.api_key.strip())
     session.add(setting)

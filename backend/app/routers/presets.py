@@ -90,24 +90,10 @@ def update_preset(
     row = session.get(Preset, preset_id)
     if not row:
         raise HTTPException(status_code=404, detail="预设不存在")
-    row.name = "学术论文"
-    row.style = payload.style
-    row.lexicon_scope = payload.lexicon_scope
-    row.strength = payload.strength
-    row.person = payload.person
-    row.colloquial = payload.colloquial
-    row.length_ratio_min = payload.length_ratio_min
-    row.length_ratio_max = payload.length_ratio_max
-    row.protect_terms = json.dumps(payload.protect_terms, ensure_ascii=False)
-    row.banned_words = json.dumps(payload.banned_words, ensure_ascii=False)
-    row.use_rule_engine = payload.use_rule_engine
-    row.use_llm = payload.use_llm
-    row.max_rounds = payload.max_rounds
-    row.extra_prompt = payload.extra_prompt
-    session.add(row)
-    session.commit()
-    session.refresh(row)
-    return _to_out(row)
+    raise HTTPException(
+        status_code=400,
+        detail="预设参数已固定，不支持在线修改；如需调整请修改后端默认配置",
+    )
 
 
 @router.delete("/{preset_id}")

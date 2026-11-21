@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from sqlmodel import Session, select
 
 from ..core.config import LEXICON_DIR, PATTERN_DIR
-from ..models.models import FeatureRule, Preset
+from ..models.models import FeatureRule, LLMSetting, Preset
 
 BUILTIN_PRESETS = [
     {
@@ -109,3 +109,20 @@ def seed(session: Session) -> None:
     academic.max_rounds = item["max_rounds"]
     academic.builtin = True
     session.commit()
+
+    # 固定生成参数，避免 Web 端误改导致效果回退。
+    setting = session.get(LLMSetting, 1)
+    if setting is not None:
+        setting.temperature = 1.2
+        setting.max_tokens = 4096
+        setting.concurrency = 3
+        setting.timeout = 120
+        setting.reasoning_effort = "medium"
+        setting.ppl_min = 45.0
+        setting.ppl_retry = 2
+        setting.ppl_severe = 20.0
+        setting.candidate_count = 1
+        setting.deep_rewrite = False
+        setting.structure_mode = "preserve"
+        session.add(setting)
+        session.commit()

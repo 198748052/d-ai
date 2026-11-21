@@ -121,3 +121,13 @@ cd /workspace/frontend && npx tsc --noEmit
 - `GET /api/detector/calibration` 计算代理指标与检测分的相关性；`POST /api/detector/calibration` 在样本不少于 20 条时保存权重。
 - 前端 `/detector` 页面提供反馈录入、记录列表和校准结果。
 - 校准脚本：`python3 -c "from app.services.rewriter.calibration import build_report"` 仅用于本地验证，正式入口是 API。
+
+## 十三、固定参数与只读页面（2026-11 增补）
+
+- 稳定模式默认值：`deep_rewrite=False`、`candidate_count=1`、`structure_mode=preserve`。
+- 生成参数固定：温度 1.2、最大输出 4096 tokens、推理强度 medium、并发 3、超时 120 秒。
+- 困惑度阈值固定：达标 45、重写 2 次、严重标记 20。
+- 后端启动时 `seed()` 会把 LLMSetting 中这些字段恢复为固定值；`PUT /api/settings/llm` 也会忽略前端传入的这些字段。
+- 工作台不再展示深度改写、结构模式、候选数量三个手动开关，固定使用稳定模式。
+- `/presets` 页面改为只读；`PUT /api/presets/{id}` 直接返回 400，预设参数只能通过后端默认配置调整。
+- `/settings/llm` 页面移除了生成参数和困惑度阈值输入，只保留 Base URL、模型、API Key 和本地模型操作。

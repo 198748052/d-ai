@@ -348,61 +348,8 @@ export default function LLMSettingsPage() {
               className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
             />
           </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">
-              Temperature：{form.temperature}
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={2}
-              step={0.1}
-              value={form.temperature}
-              onChange={(e) => update("temperature", Number(e.target.value))}
-              className="w-full accent-accent-600"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">最大输出 tokens</label>
-            <input
-              type="number"
-              value={form.max_tokens}
-              onChange={(e) => update("max_tokens", Number(e.target.value))}
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">推理强度</label>
-            <select
-              value={form.reasoning_effort}
-              onChange={(e) => update("reasoning_effort", e.target.value)}
-              className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm outline-none focus:border-accent-500"
-            >
-              <option value="low">低（快，改写效果较弱）</option>
-              <option value="medium">中（推荐）</option>
-              <option value="high">高（慢，效果更好）</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">并发数</label>
-            <input
-              type="number"
-              min={1}
-              max={16}
-              value={form.concurrency}
-              onChange={(e) => update("concurrency", Number(e.target.value))}
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">超时（秒）</label>
-            <input
-              type="number"
-              min={5}
-              value={form.timeout}
-              onChange={(e) => update("timeout", Number(e.target.value))}
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
+          <div className="md:col-span-2 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
+            生成参数已固定：温度 1.2、最大输出 4096 tokens、推理强度 medium、并发 3、超时 120 秒。
           </div>
         </div>
 
@@ -570,54 +517,14 @@ export default function LLMSettingsPage() {
       </section>
 
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
-        <h2 className="text-sm font-semibold text-ink-900">困惑度阈值与踩坑记录</h2>
+        <h2 className="text-sm font-semibold text-ink-900">踩坑记录</h2>
         <p className="mt-1 text-sm text-ink-500">
-          低于阈值的句子会触发整段重写；重写后仍低于严重阈值的句子会被记录，并在后续改写时写入提示词避开。
+          低于阈值的句子会触发整段重写；重写后仍低于严重阈值的句子会被记录，并在后续改写时写入提示词避开。阈值已固定，页面只读。
         </p>
-        <div className="mt-4 grid gap-3 md:grid-cols-3">
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">达标阈值</label>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={form.ppl_min}
-              onChange={(e) => update("ppl_min", Number(e.target.value))}
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">重写次数</label>
-            <input
-              type="number"
-              min={0}
-              max={5}
-              value={form.ppl_retry}
-              onChange={(e) => update("ppl_retry", Number(e.target.value))}
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">严重标记阈值</label>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              value={form.ppl_severe}
-              onChange={(e) => update("ppl_severe", Number(e.target.value))}
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
-          </div>
+        <div className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
+          阈值已固定：达标 45、重写 2 次、严重标记 20。
         </div>
         <div className="mt-3 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={busy}
-            className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-60"
-          >
-            保存阈值
-          </button>
           <button
             type="button"
             onClick={loadLessons}

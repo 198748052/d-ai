@@ -74,9 +74,6 @@ export default function WorkspacePage() {
   const [showClarify, setShowClarify] = useState(false);
   const [contentReport, setContentReport] = useState<ContentReport | null>(null);
   const [structureChanges, setStructureChanges] = useState<string[]>([]);
-  const [candidateCount, setCandidateCount] = useState(1);
-  const [deepRewrite, setDeepRewrite] = useState(false);
-  const [structureMode, setStructureMode] = useState<"preserve" | "flexible">("preserve");
 
   useEffect(() => {
     try {
@@ -212,9 +209,9 @@ export default function WorkspacePage() {
         mode: "hybrid",
         preset_id: preset?.id,
         content_facts: contentFacts,
-        candidate_count: candidateCount,
-        deep_rewrite: deepRewrite,
-        structure_mode: structureMode,
+        candidate_count: 1,
+        deep_rewrite: false,
+        structure_mode: "preserve",
       });
       setTotal(jobTotal);
       setJobDbId(db_id);
@@ -264,16 +261,7 @@ export default function WorkspacePage() {
       setRunning(false);
       setJobDbId(null);
     }
-  }, [
-    text,
-    preset,
-    user,
-    router,
-    contentFacts,
-    candidateCount,
-    deepRewrite,
-    structureMode,
-  ]);
+  }, [text, preset, user, router, contentFacts]);
 
   const handleCancel = useCallback(async () => {
     if (!jobDbId) return;
@@ -378,49 +366,15 @@ export default function WorkspacePage() {
           学术模式：口语化已关闭。流程为「内容缺口扫描 → 规则库删除/替换 → 多候选 LLM 改写 → 复检与结构复核 → 特征审计」。
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-ink-600">
-          <label className="flex items-center gap-1.5">
-            <input
-              type="checkbox"
-              checked={deepRewrite}
-              onChange={(e) => setDeepRewrite(e.target.checked)}
-              className="h-3.5 w-3.5 accent-accent-600"
-            />
-            深度改写
-          </label>
-          <label className="flex items-center gap-1.5">
-            结构
-            <select
-              value={structureMode}
-              onChange={(e) =>
-                setStructureMode(e.target.value === "flexible" ? "flexible" : "preserve")
-              }
-              className="rounded-md border border-ink-200 bg-white px-2 py-1"
-            >
-              <option value="preserve">保持段落</option>
-              <option value="flexible">允许拆分/合并</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5">
-            候选
-            <select
-              value={candidateCount}
-              onChange={(e) => setCandidateCount(Number(e.target.value))}
-              className="rounded-md border border-ink-200 bg-white px-2 py-1"
-            >
-              <option value={1}>1 个</option>
-              <option value={2}>2 个</option>
-              <option value={3}>3 个</option>
-            </select>
-          </label>
+        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-500">
+          <span className="rounded-md bg-ink-100 px-2 py-1">
+            稳定模式：单候选 · 保留段落 · 关闭深度改写
+          </span>
           {contentFacts.length > 0 && (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
               已补充 {contentFacts.length} 条事实
             </span>
           )}
-          <span className="text-[11px] text-ink-400">
-            深度改写和多候选会增加 LLM 痕迹，建议先用小样本对比检测分。
-          </span>
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
