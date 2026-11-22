@@ -11,17 +11,7 @@ interface FormState {
   base_url: string;
   model: string;
   api_key: string;
-  temperature: number;
-  max_tokens: number;
-  concurrency: number;
-  timeout: number;
-  reasoning_effort: string;
   local_enabled: boolean;
-  local_model: string;
-  local_dtype: string;
-  ppl_min: number;
-  ppl_retry: number;
-  ppl_severe: number;
 }
 
 const EMPTY: FormState = {
@@ -29,17 +19,7 @@ const EMPTY: FormState = {
   base_url: "https://api.openai.com/v1",
   model: "gpt-4o-mini",
   api_key: "",
-  temperature: 1.2,
-  max_tokens: 4096,
-  concurrency: 3,
-  timeout: 120,
-  reasoning_effort: "medium",
   local_enabled: false,
-  local_model: "Qwen/Qwen2.5-1.5B",
-  local_dtype: "float16",
-  ppl_min: 45,
-  ppl_retry: 2,
-  ppl_severe: 20,
 };
 
 const PROVIDERS = [
@@ -75,17 +55,7 @@ export default function LLMSettingsPage() {
         provider: data.provider,
         base_url: data.base_url,
         model: data.model,
-        temperature: data.temperature,
-        max_tokens: data.max_tokens,
-        concurrency: data.concurrency,
-        timeout: data.timeout,
-        reasoning_effort: data.reasoning_effort ?? "medium",
         local_enabled: data.local_enabled ?? false,
-        local_model: data.local_model ?? "Qwen/Qwen2.5-1.5B",
-        local_dtype: data.local_dtype ?? "float16",
-        ppl_min: data.ppl_min ?? 45,
-        ppl_retry: data.ppl_retry ?? 2,
-        ppl_severe: data.ppl_severe ?? 20,
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
@@ -128,17 +98,7 @@ export default function LLMSettingsPage() {
         provider: form.provider,
         base_url: form.base_url,
         model: form.model,
-        temperature: form.temperature,
-        max_tokens: form.max_tokens,
-        concurrency: form.concurrency,
-        timeout: form.timeout,
-        reasoning_effort: form.reasoning_effort,
         local_enabled: form.local_enabled,
-        local_model: form.local_model,
-        local_dtype: form.local_dtype,
-        ppl_min: form.ppl_min,
-        ppl_retry: form.ppl_retry,
-        ppl_severe: form.ppl_severe,
       };
       if (form.api_key.trim()) payload.api_key = form.api_key.trim();
       await apiSend<LLMSetting>("/api/settings/llm", "PUT", payload);
@@ -244,10 +204,7 @@ export default function LLMSettingsPage() {
     setError("");
     setMessage("");
     try {
-      await apiSend<LocalModelStatus>("/api/settings/llm/local/load", "POST", {
-        model: form.local_model,
-        dtype: form.local_dtype,
-      });
+      await apiSend<LocalModelStatus>("/api/settings/llm/local/load", "POST", {});
       setMessage("模型开始加载，首次需要下载，可能要几分钟");
       await refreshLocalStatus();
     } catch (err) {
@@ -438,28 +395,8 @@ export default function LLMSettingsPage() {
           />
           启用本地模型评分
         </label>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <label className="mb-1 block text-xs font-medium text-ink-500">模型名称</label>
-            <input
-              value={form.local_model}
-              onChange={(e) => update("local_model", e.target.value)}
-              placeholder="Qwen/Qwen2.5-1.5B"
-              className="w-full rounded-lg border border-ink-200 px-3 py-2 text-sm outline-none focus:border-accent-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-500">精度</label>
-            <select
-              value={form.local_dtype}
-              onChange={(e) => update("local_dtype", e.target.value)}
-              className="w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-sm outline-none focus:border-accent-500"
-            >
-              <option value="float32">float32（更稳，内存更大）</option>
-              <option value="float16">float16（更省内存）</option>
-              <option value="bfloat16">bfloat16</option>
-            </select>
-          </div>
+        <div className="mt-3 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
+          本地模型已固定为 Qwen/Qwen2.5-1.5B + float16，避免误改导致内存溢出。
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button

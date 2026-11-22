@@ -131,3 +131,11 @@ cd /workspace/frontend && npx tsc --noEmit
 - 工作台不再展示深度改写、结构模式、候选数量三个手动开关，固定使用稳定模式。
 - `/presets` 页面改为只读；`PUT /api/presets/{id}` 直接返回 400，预设参数只能通过后端默认配置调整。
 - `/settings/llm` 页面移除了生成参数和困惑度阈值输入，只保留 Base URL、模型、API Key 和本地模型操作。
+
+## 十四、检测器反馈增强（2026-11 增补）
+
+- `/detector` 支持 CSV 导入和导出，表头为 `job_id, detector, detector_version, checked_at, score_before, score_after, red_sentences, notes`。
+- 导入时按 `job_id + 检测器 + 版本 + 改写后分数` 去重，重复记录自动跳过。
+- 标红句按模板连接词、不是…而是、不仅…而且、随着…发展、对…进行、被字句、三层的字链、长句、短句聚类展示。
+- 校准按 `检测器 / 版本` 分组计算相关性和权重，样本最多的组作为当前权重组；分组结果写入 `data/calibration.json` 的 `groups` 字段。
+- 本地模型固定为 Qwen/Qwen2.5-1.5B + float16；`LLMSettingIn` 只保留连接配置和本地模型开关。

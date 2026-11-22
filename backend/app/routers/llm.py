@@ -6,6 +6,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
+from ..core.config import DEFAULT_LOCAL_DTYPE, DEFAULT_LOCAL_MODEL
 from ..core.crypto import decrypt, encrypt, mask_key
 from ..db.database import get_session
 from ..deps import require_admin
@@ -97,8 +98,8 @@ def update_setting(payload: LLMSettingIn, session: Session = Depends(get_session
     setting.timeout = FIXED_SETTINGS["timeout"]
     setting.reasoning_effort = FIXED_SETTINGS["reasoning_effort"]
     setting.local_enabled = payload.local_enabled
-    setting.local_model = payload.local_model.strip() or "Qwen/Qwen2.5-1.5B"
-    setting.local_dtype = payload.local_dtype or "float16"
+    setting.local_model = DEFAULT_LOCAL_MODEL
+    setting.local_dtype = DEFAULT_LOCAL_DTYPE
     setting.ppl_min = FIXED_SETTINGS["ppl_min"]
     setting.ppl_retry = FIXED_SETTINGS["ppl_retry"]
     setting.ppl_severe = FIXED_SETTINGS["ppl_severe"]
@@ -175,18 +176,14 @@ def local_status():
 
 
 @router.post("/local/load", response_model=LocalModelStatusOut)
-def local_load(payload: LocalModelLoadIn, session: Session = Depends(get_session)):
+def local_load(_: LocalModelLoadIn, session: Session = Depends(get_session)):
     setting = _get_or_create(session)
-    model_name = (payload.model or setting.local_model or "").strip()
-    dtype = (payload.dtype or setting.local_dtype or "float32").strip()
-    if not model_name:
-        raise HTTPException(status_code=400, detail="请填写本地模型名称")
-    if dtype == "float32":
-        raise HTTPException(
-            status_code=400,
-            detail="当前环境内存有限，float32 会在加载时被 OOM 杀掉，请改用 float16 或 bfloat16",
-        )
-    local_model.load_model_async(model_name, dtype)
+    # 本地模型固定为 Qwen2.5-1.5B + float16，避免误改导致 OOM。
+    setting.local_model = DEFAULT_LOCAL_MODEL
+    setting.local_dtype = DEFAULT_LOCAL_DTYPE
+    session.add(setting)
+    session.commit()
+    local_model.load_model_async(DEFAULT_LOCAL_MODEL, DEFAULT_LOCAL_DTYPE)
     return local_model.status()
 
 

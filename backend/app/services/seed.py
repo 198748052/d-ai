@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 
 from sqlmodel import Session, select
 
-from ..core.config import LEXICON_DIR, PATTERN_DIR
+from ..core.config import DEFAULT_LOCAL_DTYPE, DEFAULT_LOCAL_MODEL, LEXICON_DIR, PATTERN_DIR
 from ..models.models import FeatureRule, LLMSetting, Preset
 
 BUILTIN_PRESETS = [
@@ -124,5 +124,7 @@ def seed(session: Session) -> None:
         setting.candidate_count = 1
         setting.deep_rewrite = False
         setting.structure_mode = "preserve"
+        setting.local_model = DEFAULT_LOCAL_MODEL
+        setting.local_dtype = DEFAULT_LOCAL_DTYPE
         session.add(setting)
         session.commit()

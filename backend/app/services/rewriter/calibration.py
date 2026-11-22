@@ -154,6 +154,8 @@ def save_weights(report: dict) -> None:
         "updated_at": None,
         "sample_count": report.get("sample_count", 0),
         "correlations": report.get("correlations", {}),
+        "groups": report.get("groups", {}),
+        "active_group": report.get("active_group", ""),
         "regression": weights,
         "selector_weights": selector,
     }

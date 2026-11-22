@@ -6,7 +6,9 @@ import { apiGet, apiSend } from "@/lib/api";
 import { useAuth } from "@/components/AuthContext";
 import type {
   CalibrationResult,
+  DetectorCluster,
   DetectorFeedback,
+  DetectorImportResult,
   DetectorJob,
 } from "@/lib/types";
 
@@ -20,6 +22,7 @@ export default function DetectorPage() {
   const [jobs, setJobs] = useState<DetectorJob[]>([]);
   const [feedback, setFeedback] = useState<DetectorFeedback[]>([]);
   const [calibration, setCalibration] = useState<CalibrationResult | null>(null);
+  const [clusters, setClusters] = useState<DetectorCluster[]>([]);
   const [jobId, setJobId] = useState("");
   const [detector, setDetector] = useState("知网 AIGC");
   const [version, setVersion] = useState("");
@@ -30,17 +33,20 @@ export default function DetectorPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [importText, setImportText] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const [jobRows, feedbackRows, calibrationResult] = await Promise.all([
+      const [jobRows, feedbackRows, calibrationResult, clusterRows] = await Promise.all([
         apiGet<DetectorJob[]>("/api/detector/jobs?limit=30"),
         apiGet<DetectorFeedback[]>("/api/detector/feedback?limit=50"),
         apiGet<CalibrationResult>("/api/detector/calibration"),
+        apiGet<DetectorCluster[]>("/api/detector/clusters"),
       ]);
       setJobs(jobRows);
       setFeedback(feedbackRows);
       setCalibration(calibrationResult);
+      setClusters(clusterRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : "加载失败");
     }
@@ -99,6 +105,49 @@ export default function DetectorPage() {
       setError(err instanceof Error ? err.message : "校准失败");
     } finally {
       setBusy(false);
+    }
+  }, []);
+
+  const handleImport = useCallback(async () => {
+    if (!importText.trim()) {
+      setError("请先选择或粘贴 CSV 内容");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    setError("");
+    try {
+      const result = await apiSend<DetectorImportResult>(
+        "/api/detector/feedback/import",
+        "POST",
+        { csv: importText }
+      );
+      setMessage(`导入完成：新增 ${result.imported} 条，跳过 ${result.skipped} 条`);
+      setImportText("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "导入失败");
+    } finally {
+      setBusy(false);
+    }
+  }, [importText, load]);
+
+  const handleExport = useCallback(async () => {
+    setError("");
+    try {
+      const res = await fetch("/api/detector/feedback/export");
+      if (!res.ok) throw new Error("导出失败");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "detector-feedback.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "导出失败");
     }
   }, []);
 
@@ -219,6 +268,47 @@ export default function DetectorPage() {
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
+            <h2 className="text-sm font-semibold text-ink-900">批量导入 / 导出</h2>
+            <p className="mt-1 text-xs text-ink-500">
+              CSV 表头：job_id, detector, detector_version, checked_at, score_before, score_after, red_sentences, notes。标红句用 | 分隔。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleExport}
+            className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50"
+          >
+            导出 CSV
+          </button>
+        </div>
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (file) setImportText(await file.text());
+          }}
+          className="mt-3 block w-full text-xs text-ink-600"
+        />
+        <textarea
+          value={importText}
+          onChange={(e) => setImportText(e.target.value)}
+          placeholder="也可以直接粘贴 CSV 内容"
+          className="mt-2 h-24 w-full resize-y rounded-lg border border-ink-200 bg-ink-50/40 p-2 font-mono text-xs"
+        />
+        <button
+          type="button"
+          onClick={handleImport}
+          disabled={busy}
+          className="mt-2 rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white hover:bg-accent-700 disabled:opacity-60"
+        >
+          {busy ? "导入中…" : "导入 CSV"}
+        </button>
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
             <h2 className="text-sm font-semibold text-ink-900">校准结果</h2>
             <p className="mt-1 text-xs text-ink-500">
               样本 {calibration?.sample_count ?? 0} 条
@@ -236,6 +326,11 @@ export default function DetectorPage() {
         {calibration && (
           <>
             <p className="mt-2 text-xs text-ink-600">{calibration.recommendation}</p>
+            {calibration.active_group && (
+              <p className="mt-1 text-xs text-ink-500">
+                当前权重组：{calibration.active_group}
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2 text-xs">
               {Object.entries(calibration.correlations).map(([key, value]) => (
                 <span
@@ -246,7 +341,48 @@ export default function DetectorPage() {
                 </span>
               ))}
             </div>
+            {calibration.groups && Object.keys(calibration.groups).length > 0 && (
+              <div className="mt-3 space-y-2">
+                {Object.entries(calibration.groups).map(([group, report]) => (
+                  <div
+                    key={group}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-ink-100 px-3 py-2 text-xs"
+                  >
+                    <span className="text-ink-700">{group}</span>
+                    <span className="text-ink-500">
+                      样本 {report.sample_count} 条 · 最强相关{" "}
+                      {Object.entries(report.correlations).sort(
+                        (a, b) => Math.abs(b[1]) - Math.abs(a[1])
+                      )[0]?.[0] ?? "-"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink-900">标红句聚类</h2>
+        {clusters.length === 0 ? (
+          <p className="mt-2 text-sm text-ink-500">还没有标红句。录入反馈时填写标红句后，这里会按句式聚类。</p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            {clusters.map((cluster) => (
+              <div key={cluster.label} className="rounded-lg border border-ink-100 px-3 py-2">
+                <div className="flex items-center justify-between text-sm text-ink-800">
+                  <span>{cluster.label}</span>
+                  <span className="text-xs text-ink-500">{cluster.count} 句</span>
+                </div>
+                <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs text-ink-500">
+                  {cluster.examples.map((example, index) => (
+                    <li key={index} className="truncate">{example}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         )}
       </section>
 

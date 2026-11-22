@@ -343,6 +343,53 @@ export default function HistoryPage() {
                 </div>
               )}
 
+              {(detail.result?.content_report ||
+                (detail.result?.structure_changes?.length ?? 0) > 0 ||
+                (detail.result?.candidate_scores?.length ?? 0) > 0) && (
+                <div className="rounded-lg border border-ink-100 bg-ink-50/60 p-3 text-xs">
+                  {detail.result?.content_report && (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-md bg-white px-2 py-1 text-ink-600">
+                        补充事实{" "}
+                        <strong className="text-ink-900">
+                          {detail.result.content_report.facts_used}/
+                          {detail.result.content_report.facts_provided}
+                        </strong>
+                      </span>
+                      <span className="rounded-md bg-white px-2 py-1 text-ink-600">
+                        数字{" "}
+                        <strong className="text-ink-900">
+                          {detail.result.content_report.density_before.numbers ?? 0} →{" "}
+                          {detail.result.content_report.density_after.numbers ?? 0}
+                        </strong>
+                      </span>
+                      <span className="rounded-md bg-white px-2 py-1 text-ink-600">
+                        引用{" "}
+                        <strong className="text-ink-900">
+                          {detail.result.content_report.density_before.citations ?? 0} →{" "}
+                          {detail.result.content_report.density_after.citations ?? 0}
+                        </strong>
+                      </span>
+                    </div>
+                  )}
+                  {(detail.result?.structure_changes?.length ?? 0) > 0 && (
+                    <ul className="mt-2 list-inside list-disc space-y-0.5 text-ink-600">
+                      {detail.result?.structure_changes?.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {(detail.result?.candidate_scores?.length ?? 0) > 0 && (
+                    <p className="mt-2 text-ink-500">
+                      候选评分 {detail.result?.candidate_scores?.length} 条 · 最低分{" "}
+                      {Math.min(
+                        ...(detail.result?.candidate_scores ?? []).map((item) => item.score)
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <div className="mb-1 text-xs font-medium text-ink-500">原文</div>
                 <div className="max-h-48 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-50 p-3 text-xs leading-6 text-ink-600">

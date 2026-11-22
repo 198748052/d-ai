@@ -126,20 +126,7 @@ class LLMSettingIn(BaseModel):
     base_url: str = "https://api.openai.com/v1"
     model: str = "gpt-4o-mini"
     api_key: Optional[str] = None
-    temperature: float = 1.2
-    max_tokens: int = 4096
-    concurrency: int = 3
-    timeout: int = 120
-    reasoning_effort: str = "medium"
     local_enabled: bool = False
-    local_model: str = "Qwen/Qwen2.5-1.5B"
-    local_dtype: str = "float16"
-    ppl_min: float = 45.0
-    ppl_retry: int = 2
-    ppl_severe: float = 20.0
-    candidate_count: int = 1
-    deep_rewrite: bool = False
-    structure_mode: str = "preserve"
 
 
 class LLMSettingOut(BaseModel):
@@ -301,6 +288,18 @@ class CalibrationOut(BaseModel):
     correlations: dict = Field(default_factory=dict)
     weights: dict = Field(default_factory=dict)
     recommendation: str = ""
+    groups: dict = Field(default_factory=dict)
+    active_group: str = ""
+
+
+class DetectorFeedbackImport(BaseModel):
+    csv: str = ""
+
+
+class DetectorClusterOut(BaseModel):
+    label: str
+    count: int
+    examples: list[str] = Field(default_factory=list)
 
 
 class PerplexityRequest(BaseModel):

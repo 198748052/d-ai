@@ -352,11 +352,31 @@ export interface DetectorJob {
   proxy_total?: number | null;
 }
 
+export interface CalibrationGroup {
+  sample_count: number;
+  correlations: Record<string, number>;
+  weights: Record<string, unknown>;
+  recommendation: string;
+}
+
 export interface CalibrationResult {
   sample_count: number;
   correlations: Record<string, number>;
   weights: Record<string, unknown>;
   recommendation: string;
+  groups?: Record<string, CalibrationGroup>;
+  active_group?: string;
+}
+
+export interface DetectorCluster {
+  label: string;
+  count: number;
+  examples: string[];
+}
+
+export interface DetectorImportResult {
+  imported: number;
+  skipped: number;
 }
 
 
