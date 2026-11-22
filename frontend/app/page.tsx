@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiGet, apiSend, exportDocument, fetchRewriteJob, startRewriteJob } from "@/lib/api";
+import { copyText } from "@/lib/clipboard";
 import { useAuth } from "@/components/AuthContext";
 import type {
   AuditResult,
@@ -66,6 +67,7 @@ export default function WorkspacePage() {
   const [error, setError] = useState("");
   const [total, setTotal] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [copyFallback, setCopyFallback] = useState(false);
   const [jobDbId, setJobDbId] = useState<number | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState("");
   const [clarifyQuestions, setClarifyQuestions] = useState<ClarifyQuestion[]>([]);
@@ -233,6 +235,7 @@ export default function WorkspacePage() {
     setStructureChanges([]);
     setSentenceResults({});
     setSentenceBusy(null);
+    setCopyFallback(false);
     setTotal(countParagraphs(text));
 
     try {
@@ -312,8 +315,17 @@ export default function WorkspacePage() {
   }, [jobDbId]);
 
   const handleCopy = useCallback(async () => {
-    if (!rewrittenText) return;
-    await navigator.clipboard.writeText(rewrittenText);
+    if (!rewrittenText) {
+      setError("还没有可复制的内容");
+      return;
+    }
+    const ok = await copyText(rewrittenText);
+    if (!ok) {
+      setCopyFallback(true);
+      setError("自动复制被浏览器拦截，已打开手动复制窗口");
+      return;
+    }
+    setError("");
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }, [rewrittenText]);
@@ -1004,7 +1016,10 @@ export default function WorkspacePage() {
                             <div className="mt-1 select-text">{result.rewritten}</div>
                             <button
                               type="button"
-                              onClick={() => navigator.clipboard.writeText(result.rewritten)}
+                              onClick={async () => {
+                                const ok = await copyText(result.rewritten);
+                                if (!ok) setError("复制失败，请手动选中文本复制");
+                              }}
                               className="mt-1 text-[11px] text-accent-700 hover:underline"
                             >
                               复制这句
@@ -1020,6 +1035,42 @@ export default function WorkspacePage() {
           </article>
         ))}
       </section>
+
+      {copyFallback && (
+        <div
+          className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setCopyFallback(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="手动复制"
+        >
+          <div
+            className="w-full max-w-2xl rounded-xl bg-white p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-ink-900">手动复制</h3>
+              <button
+                type="button"
+                onClick={() => setCopyFallback(false)}
+                className="rounded-md px-2 py-1 text-xs text-ink-500 hover:bg-ink-100"
+              >
+                关闭
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-ink-500">
+              浏览器阻止了自动复制，请在文本框内按 Ctrl/⌘ + C。
+            </p>
+            <textarea
+              readOnly
+              value={rewrittenText}
+              autoFocus
+              onFocus={(event) => event.currentTarget.select()}
+              className="mt-3 h-64 w-full resize-none rounded-lg border border-ink-200 bg-ink-50 p-3 text-xs text-ink-700 outline-none"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

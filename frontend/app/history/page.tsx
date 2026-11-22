@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/api";
+import { copyText } from "@/lib/clipboard";
 import { useAuth } from "@/components/AuthContext";
 import type { JobDetail, JobSummary } from "@/lib/types";
 
@@ -141,8 +142,16 @@ export default function HistoryPage() {
       detail?.rewritten ||
       detail?.result?.paragraphs?.map((item) => item.rewritten).join("\n\n") ||
       "";
-    if (!text) return;
-    await navigator.clipboard.writeText(text);
+    if (!text) {
+      setError("还没有可复制的内容");
+      return;
+    }
+    const ok = await copyText(text);
+    if (!ok) {
+      setError("复制失败，请手动选中文本复制");
+      return;
+    }
+    setError("");
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   };
