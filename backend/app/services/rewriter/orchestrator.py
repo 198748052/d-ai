@@ -639,7 +639,7 @@ async def _rewrite_one(
                     for item in (diag_before.get("issues") or [])[:3]:
                         if item not in issues:
                             issues.append(item)
-                    if metrics.get("cv", 0) >= 0.42 and not runs and not issues:
+                    if metrics.get("cv", 0) >= 0.7 and not runs and not issues:
                         break
                     try:
                         candidate = await llm.adjust_rhythm(current, metrics, llm_ctx, issues)
@@ -676,14 +676,15 @@ async def _rewrite_one(
                         pass
 
                 before_metrics = analyze(current)
-                if before_metrics.get("cv", 0) < 0.5:
-                    adjusted = await asyncio.to_thread(engine.post_rhythm, current, 0.5)
+                if before_metrics.get("cv", 0) < 0.7:
+                    adjusted = await asyncio.to_thread(engine.post_rhythm, current, 0.7)
                     if adjusted != current:
                         after_metrics = analyze(adjusted)
                         old_hits = len(collect_hits(current, audit_engine, whitelist=ctx.whitelist))
                         new_hits = len(collect_hits(adjusted, audit_engine, whitelist=ctx.whitelist))
                         if (
                             after_metrics.get("cv", 0) > before_metrics.get("cv", 0)
+                            and after_metrics.get("cv", 0) <= 0.9
                             and new_hits <= old_hits
                         ):
                             current = adjusted
