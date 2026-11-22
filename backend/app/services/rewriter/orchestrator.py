@@ -113,6 +113,7 @@ class RewriteContext:
     candidate_count: int = 1
     deep_rewrite: bool = False
     structure_mode: str = "preserve"
+    rewrite_granularity: str = "hybrid"
 
 
 def load_rules(session: Session, lexicon_scope: str, style: str = "general") -> list[Rule]:
@@ -209,6 +210,9 @@ def build_context(req: RewriteRequest, session: Session) -> RewriteContext:
     ctx.candidate_count = max(1, min(5, int(req.candidate_count or 1)))
     ctx.deep_rewrite = bool(req.deep_rewrite)
     ctx.structure_mode = req.structure_mode if req.structure_mode in {"preserve", "flexible"} else "preserve"
+    ctx.rewrite_granularity = (
+        req.rewrite_granularity if req.rewrite_granularity in {"hybrid", "document"} else "hybrid"
+    )
     if setting is not None:
         if not req.candidate_count:
             ctx.candidate_count = max(1, min(5, int(getattr(setting, "candidate_count", 1) or 1)))
@@ -719,64 +723,115 @@ def _build_response(
     )
 
 
-async def rewrite_document(
+async def _rewrite_document_level(
     text: str,
+    paragraphs: list[str],
     ctx: RewriteContext,
     rules: list[Rule],
-    llm: LLMEngine | None,
-    emit: EmitFn | None = None,
-    pause_event: asyncio.Event | None = None,
-) -> RewriteResponse:
-    warnings: list[str] = []
-    ppl_issues: list[dict] = []
-    if ctx.use_llm and (llm is None or not llm.configured):
-        raise LLMError("改写需要规则 + LLM 混合执行，请先在 LLM 设置页配置 Base URL、模型和 API Key")
+    llm: LLMEngine,
+    warnings: list[str],
+) -> list[ParagraphResult] | None:
+    """整篇改写：一次调用处理全文，失败或段落数不一致时回退混合粒度。"""
+    if len(text) > 8000:
+        warnings.append("文本超过 8000 字，文档级改写已回退到混合粒度")
+        return None
 
-    # Stage 4 前置：先把过程痕迹清掉，避免被当成正文改写或计费。
-    cleaned_text, doc_leaks = clean_leakage(text)
-    if doc_leaks:
+    protector = Protector(ctx.protect_terms)
+    masked, spans = protector.protect(text)
+    masked_paragraphs = split_paragraphs(masked)
+    if len(masked_paragraphs) != len(paragraphs):
+        return None
+
+    engine = RuleEngine(rules, ctx.whitelist, ctx.guard)
+    options = RewriteOptions(
+        strength=ctx.strength,
+        style=ctx.style,
+        person=ctx.person,
+        colloquial=ctx.colloquial,
+        deep=ctx.deep_rewrite,
+    )
+    rewritten_paragraphs: list[str] = []
+    for paragraph in masked_paragraphs:
+        if _is_heading(paragraph):
+            rewritten_paragraphs.append(paragraph)
+        else:
+            rewritten_paragraphs.append(
+                await asyncio.to_thread(engine.rewrite, paragraph, options)
+            )
+    masked_document = "\n\n".join(rewritten_paragraphs)
+    hits = collect_hits(masked_document, engine, whitelist=ctx.whitelist, limit=40)
+    llm_ctx = LLMContext(
+        style=ctx.style,
+        strength=ctx.strength,
+        person=ctx.person,
+        colloquial=ctx.colloquial,
+        length_ratio_min=ctx.length_ratio_min,
+        length_ratio_max=ctx.length_ratio_max,
+        banned_words=ctx.banned_words,
+        extra_prompt=ctx.extra_prompt,
+        lessons=list(ctx.lessons),
+        issues=list(ctx.diagnosis_before.get("issues") or []),
+        plan=list(ctx.diagnosis_before.get("plan") or []),
+        content_facts=list(ctx.content_facts),
+        deep_rewrite=ctx.deep_rewrite,
+    )
+    try:
+        candidate = await llm.rewrite_document(masked_document, llm_ctx, hits, context=text)
+    except LLMError as exc:
+        warnings.append(f"文档级改写失败：{exc}")
+        return None
+    if not LLMEngine.placeholders_intact(masked_document, candidate):
+        warnings.append("文档级改写占位符未完整保留")
+        return None
+
+    restored = protector.restore(candidate, spans)
+    restored, leak_hits = clean_leakage(restored)
+    if leak_hits:
+        warnings.append("文档级改写后又出现过程痕迹，已再次清除")
+    new_paragraphs = split_paragraphs(restored)
+    if len(new_paragraphs) != len(paragraphs):
         warnings.append(
-            "全文清除了过程痕迹："
-            + "、".join(item["category"] for item in doc_leaks)
+            f"文档级改写段落数不一致（{len(paragraphs)} → {len(new_paragraphs)}）"
         )
-    ctx.diagnosis_before = diagnose(cleaned_text, ctx.style)
+        return None
 
-    paragraphs = split_paragraphs(cleaned_text)
-    if not paragraphs:
-        return _build_response([], warnings or ["没有解析到任何段落，请检查输入内容"])
-
-    ctx.facts_by_paragraph = assign_facts(ctx.content_facts, paragraphs)
-    candidate_scores: list[dict] = []
-
-    semaphore = asyncio.Semaphore(max(1, ctx.concurrency))
-    tasks = [
-        asyncio.create_task(
-            _rewrite_one(
-                i,
-                p,
-                ctx,
-                rules,
-                llm,
-                warnings,
-                semaphore,
-                pause_event,
-                ppl_issues,
-                candidate_scores,
+    results: list[ParagraphResult] = []
+    for index, (original, rewritten) in enumerate(zip(paragraphs, new_paragraphs)):
+        if _is_heading(original):
+            rewritten = original
+        rewritten, _ = clean_leakage(rewritten)
+        diag_after = diagnose(rewritten, ctx.style)
+        metrics = paragraph_metrics(rewritten)
+        metrics["ai_per_1000"] = diag_after.get("total_per_1000")
+        metrics["dominant"] = diag_after.get("dominant_label")
+        metrics["diagnosis_issues"] = [
+            item.get("label") for item in (diag_after.get("plan") or [])[:4]
+        ]
+        results.append(
+            ParagraphResult(
+                index=index,
+                original=original,
+                rewritten=rewritten,
+                changed_ratio=_changed_ratio(original, rewritten),
+                length_ratio=_length_ratio(original, rewritten),
+                metrics=metrics,
             )
         )
-        for i, p in enumerate(paragraphs)
-    ]
+    return results
 
-    results: list[ParagraphResult | None] = [None] * len(paragraphs)
-    for coro in asyncio.as_completed(tasks):
-        result = await coro
-        results[result.index] = result
-        if emit is not None:
-            await emit(result)
 
-    ordered = [r for r in results if r is not None]
-    structure_changes: list[str] = []
-    if ctx.structure_mode == "flexible":
+async def _finalize_response(
+    ordered: list[ParagraphResult],
+    warnings: list[str],
+    ppl_issues: list[dict],
+    candidate_scores: list[dict],
+    ctx: RewriteContext,
+    rules: list[Rule],
+    cleaned_text: str,
+    structure_changes: list[str] | None = None,
+) -> RewriteResponse:
+    structure_changes = structure_changes or []
+    if ctx.structure_mode == "flexible" and not structure_changes:
         ordered, structure_changes = restructure(ordered)
         for change in structure_changes:
             warnings.append(f"结构调整：{change}")
@@ -814,3 +869,74 @@ async def rewrite_document(
         )
     response.audit = AuditResult(**audit_result)
     return response
+
+
+async def rewrite_document(
+    text: str,
+    ctx: RewriteContext,
+    rules: list[Rule],
+    llm: LLMEngine | None,
+    emit: EmitFn | None = None,
+    pause_event: asyncio.Event | None = None,
+) -> RewriteResponse:
+    warnings: list[str] = []
+    ppl_issues: list[dict] = []
+    if ctx.use_llm and (llm is None or not llm.configured):
+        raise LLMError("改写需要规则 + LLM 混合执行，请先在 LLM 设置页配置 Base URL、模型和 API Key")
+
+    # Stage 4 前置：先把过程痕迹清掉，避免被当成正文改写或计费。
+    cleaned_text, doc_leaks = clean_leakage(text)
+    if doc_leaks:
+        warnings.append(
+            "全文清除了过程痕迹："
+            + "、".join(item["category"] for item in doc_leaks)
+        )
+    ctx.diagnosis_before = diagnose(cleaned_text, ctx.style)
+
+    paragraphs = split_paragraphs(cleaned_text)
+    if not paragraphs:
+        return _build_response([], warnings or ["没有解析到任何段落，请检查输入内容"])
+
+    ctx.facts_by_paragraph = assign_facts(ctx.content_facts, paragraphs)
+    candidate_scores: list[dict] = []
+
+    if ctx.rewrite_granularity == "document" and llm is not None and llm.configured:
+        document_results = await _rewrite_document_level(
+            cleaned_text, paragraphs, ctx, rules, llm, warnings
+        )
+        if document_results is not None:
+            return await _finalize_response(
+                document_results, warnings, ppl_issues, [], ctx, rules, cleaned_text
+            )
+        warnings.append("文档级改写未成功，已回退到混合粒度")
+
+    semaphore = asyncio.Semaphore(max(1, ctx.concurrency))
+    tasks = [
+        asyncio.create_task(
+            _rewrite_one(
+                i,
+                p,
+                ctx,
+                rules,
+                llm,
+                warnings,
+                semaphore,
+                pause_event,
+                ppl_issues,
+                candidate_scores,
+            )
+        )
+        for i, p in enumerate(paragraphs)
+    ]
+
+    results: list[ParagraphResult | None] = [None] * len(paragraphs)
+    for coro in asyncio.as_completed(tasks):
+        result = await coro
+        results[result.index] = result
+        if emit is not None:
+            await emit(result)
+
+    ordered = [r for r in results if r is not None]
+    return await _finalize_response(
+        ordered, warnings, ppl_issues, candidate_scores, ctx, rules, cleaned_text
+    )

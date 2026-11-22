@@ -22,6 +22,7 @@ from .routers import (
     features,
     lessons,
     llm,
+    mining,
     presets,
     rewrite,
     update,
@@ -58,6 +59,7 @@ app.include_router(features.router)
 app.include_router(presets.router)
 app.include_router(export.router)
 app.include_router(lessons.router)
+app.include_router(mining.router)
 app.include_router(auth.router)
 app.include_router(credits.router)
 app.include_router(detector.router)

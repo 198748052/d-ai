@@ -74,6 +74,9 @@ export default function WorkspacePage() {
   const [showClarify, setShowClarify] = useState(false);
   const [contentReport, setContentReport] = useState<ContentReport | null>(null);
   const [structureChanges, setStructureChanges] = useState<string[]>([]);
+  const [rewriteGranularity, setRewriteGranularity] = useState<"hybrid" | "document">(
+    "hybrid"
+  );
 
   useEffect(() => {
     try {
@@ -212,6 +215,7 @@ export default function WorkspacePage() {
         candidate_count: 1,
         deep_rewrite: false,
         structure_mode: "preserve",
+        rewrite_granularity: rewriteGranularity,
       });
       setTotal(jobTotal);
       setJobDbId(db_id);
@@ -261,7 +265,7 @@ export default function WorkspacePage() {
       setRunning(false);
       setJobDbId(null);
     }
-  }, [text, preset, user, router, contentFacts]);
+  }, [text, preset, user, router, contentFacts, rewriteGranularity]);
 
   const handleCancel = useCallback(async () => {
     if (!jobDbId) return;
@@ -370,12 +374,30 @@ export default function WorkspacePage() {
           <span className="rounded-md bg-ink-100 px-2 py-1">
             稳定模式：单候选 · 保留段落 · 关闭深度改写
           </span>
+          <label className="flex items-center gap-1.5">
+            改写粒度
+            <select
+              value={rewriteGranularity}
+              onChange={(e) =>
+                setRewriteGranularity(e.target.value === "document" ? "document" : "hybrid")
+              }
+              className="rounded-md border border-ink-200 bg-white px-2 py-1"
+            >
+              <option value="hybrid">混合（句 + 段，默认）</option>
+              <option value="document">文档级</option>
+            </select>
+          </label>
           {contentFacts.length > 0 && (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
               已补充 {contentFacts.length} 条事实
             </span>
           )}
         </div>
+        {rewriteGranularity === "document" && (
+          <p className="mt-2 text-[11px] text-ink-400">
+            文档级适合 8000 字以内的文本；段落数不一致时会自动回退混合模式。
+          </p>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
@@ -432,9 +454,9 @@ export default function WorkspacePage() {
         <section className="rounded-xl border border-accent-200 bg-white p-5 shadow-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-ink-900">补充具体内容</h2>
+              <h2 className="text-sm font-semibold text-ink-900">补充具体内容（选填）</h2>
               <p className="mt-1 text-xs text-ink-500">
-                只填写你确认过的真实信息。数字、样本量、引用、失败案例会原样写入，模型不会自行编造。
+                只填写你确认过的真实信息。数字、样本量、引用、失败案例会原样写入，模型不会自行编造。不填也可以直接开始改写。
               </p>
             </div>
             <button

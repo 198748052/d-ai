@@ -58,6 +58,7 @@ class RewriteRequest(BaseModel):
     candidate_count: int = 1
     deep_rewrite: bool = False
     structure_mode: Literal["preserve", "flexible"] = "preserve"
+    rewrite_granularity: Literal["hybrid", "document"] = "hybrid"
 
 
 class ParagraphResult(BaseModel):
@@ -300,6 +301,37 @@ class DetectorClusterOut(BaseModel):
     label: str
     count: int
     examples: list[str] = Field(default_factory=list)
+
+
+class MiningRequest(BaseModel):
+    high_texts: list[str] = Field(default_factory=list)
+    low_texts: list[str] = Field(default_factory=list)
+    top_n: int = 30
+
+
+class MiningCandidate(BaseModel):
+    kind: str
+    pattern: str
+    note: str = ""
+    replacements: list[str] = Field(default_factory=list)
+    severity: str = "medium"
+    high_count: int = 0
+    low_count: int = 0
+    high_per_1000: float = 0.0
+    low_per_1000: float = 0.0
+    lift: float = 0.0
+    examples: list[str] = Field(default_factory=list)
+
+
+class MiningResponse(BaseModel):
+    summary: dict = Field(default_factory=dict)
+    lexicon: list[MiningCandidate] = Field(default_factory=list)
+    regex: list[MiningCandidate] = Field(default_factory=list)
+    structure: list[MiningCandidate] = Field(default_factory=list)
+
+
+class MiningApplyRequest(BaseModel):
+    candidates: list[MiningCandidate] = Field(default_factory=list)
 
 
 class PerplexityRequest(BaseModel):

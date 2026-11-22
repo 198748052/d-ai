@@ -192,6 +192,61 @@ class LLMEngine:
             raise LLMError("LLM 返回内容为空")
         return cleaned
 
+    async def rewrite_document(
+        self,
+        masked_text: str,
+        ctx: LLMContext,
+        hits: list[dict] | None = None,
+        context: str | None = None,
+    ) -> str:
+        lines = [
+            "你是学术论文编辑。下面是一整篇论文，请做整篇改写，降低机器生成特征。",
+            "必须遵守：",
+            "1. 保持段落数量、顺序、标题、序号和分点层次不变。",
+            "2. 事实、数据、术语、变量名、引用、公式、结论保持不变。",
+            "3. 原样保留所有形如 ⟦A⟧ ⟦B⟧ 的占位符，编号与位置对应。",
+            "4. 只输出正文，段落之间用空行分隔，不要解释、不要编号、不要引号。",
+            "5. 允许调整句内信息顺序、主被动和从句边界；不要新增原文没有的事实、数字、案例、引用。",
+            "6. 长短句交错，避免连续三句长度接近；保留学术语体。",
+        ]
+        if ctx.deep_rewrite:
+            lines.extend(
+                [
+                    "7. 深度改写：改变信息顺序和句法结构，删除显式因果连接词，让语义自然衔接。",
+                ]
+            )
+        if ctx.content_facts:
+            lines.extend(
+                [
+                    "",
+                    "用户补充的事实（只能使用这些，禁止编造）：",
+                    fact_lines(ctx.content_facts),
+                ]
+            )
+        if hits:
+            lines.extend(
+                [
+                    "",
+                    "全文命中的 AI 特征（必须逐条清除）：",
+                    self._format_hits(hits),
+                ]
+            )
+        messages = [
+            {"role": "system", "content": "\n".join(lines)},
+            {"role": "user", "content": masked_text},
+        ]
+        raw = await self._chat(messages, temperature=1.2, max_tokens=8192)
+        return self._postprocess_document(raw)
+
+    def _postprocess_document(self, raw: str) -> str:
+        text = (raw or "").strip()
+        text = re.sub(r"^\s*(?:改写后|改写结果|输出)[:：]\s*", "", text)
+        text = re.sub(r"\*\*([^*\n]+)\*\*", r"\1", text)
+        text = re.sub(r"[\u200b\u200c\u200d\ufeff]", "", text)
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip()
+
     async def adjust_rhythm(
         self,
         text: str,

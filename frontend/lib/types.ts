@@ -326,6 +326,7 @@ export interface RewritePayload {
   candidate_count?: number;
   deep_rewrite?: boolean;
   structure_mode?: "preserve" | "flexible";
+  rewrite_granularity?: "hybrid" | "document";
 }
 
 export interface DetectorFeedback {
@@ -377,6 +378,27 @@ export interface DetectorCluster {
 export interface DetectorImportResult {
   imported: number;
   skipped: number;
+}
+
+export interface MiningCandidate {
+  kind: string;
+  pattern: string;
+  note: string;
+  replacements: string[];
+  severity: string;
+  high_count: number;
+  low_count: number;
+  high_per_1000: number;
+  low_per_1000: number;
+  lift: number;
+  examples: string[];
+}
+
+export interface MiningResponse {
+  summary: Record<string, unknown>;
+  lexicon: MiningCandidate[];
+  regex: MiningCandidate[];
+  structure: MiningCandidate[];
 }
 
 
