@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timezone
 
+from sqlalchemy import update
 from sqlmodel import Session, select
 
 from ..models.models import CreditLog, RedeemCode, User
@@ -49,9 +50,17 @@ def grant(session: Session, user: User, amount: int, reason: str) -> User:
 def charge(session: Session, user: User, amount: int, reason: str) -> User:
     if amount <= 0:
         return user
-    if user.credits < amount:
+    # 原子扣减：并发请求同时扣费时，只有一个能成功，避免余额被扣成负数。
+    result = session.exec(
+        update(User)
+        .where(User.id == user.id, User.credits >= amount)
+        .values(credits=User.credits - amount)
+    )
+    if not getattr(result, "rowcount", 0):
+        session.refresh(user)
         raise InsufficientCredits(amount, user.credits)
-    user.credits -= amount
+    session.flush()
+    session.refresh(user)
     _write_log(session, user, -amount, reason)
     session.add(user)
     return user

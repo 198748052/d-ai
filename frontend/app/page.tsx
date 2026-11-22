@@ -16,6 +16,7 @@ import type {
   Preset,
   RewriteJobStatus,
   RewriteStats,
+  SentenceRewriteResult,
 } from "@/lib/types";
 
 const SAMPLE = `首先，值得注意的是，人工智能技术正在快速发展。其次，综上所述，这一技术在各行各业都具有重要意义。随着数字化进程的不断推进，越来越多的企业开始积极探索智能化转型路径。
@@ -50,7 +51,7 @@ const FLAVOR_LABELS: Record<string, string> = {
 
 export default function WorkspacePage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const [text, setText] = useState("");
   const [preset, setPreset] = useState<Preset | null>(null);
   const [ruleCount, setRuleCount] = useState(0);
@@ -78,6 +79,10 @@ export default function WorkspacePage() {
     "hybrid"
   );
   const [rewriteHeadings, setRewriteHeadings] = useState(false);
+  const [sentenceResults, setSentenceResults] = useState<
+    Record<string, SentenceRewriteResult>
+  >({});
+  const [sentenceBusy, setSentenceBusy] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -182,6 +187,27 @@ export default function WorkspacePage() {
     }
   }, [clarifyQuestions, clarifyAnswers]);
 
+  const handleRewriteSentence = useCallback(
+    async (key: string, sentence: string) => {
+      setSentenceBusy(key);
+      setError("");
+      try {
+        const data = await apiSend<SentenceRewriteResult>(
+          "/api/rewrite/sentence",
+          "POST",
+          { text: sentence }
+        );
+        setSentenceResults((prev) => ({ ...prev, [key]: data }));
+        await refresh();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "单句重写失败");
+      } finally {
+        setSentenceBusy(null);
+      }
+    },
+    [refresh]
+  );
+
   const handleRewrite = useCallback(async () => {
     if (!user) {
       router.push("/login");
@@ -205,6 +231,8 @@ export default function WorkspacePage() {
     setRewrittenText("");
     setContentReport(null);
     setStructureChanges([]);
+    setSentenceResults({});
+    setSentenceBusy(null);
     setTotal(countParagraphs(text));
 
     try {
@@ -930,6 +958,64 @@ export default function WorkspacePage() {
                 </p>
               </div>
             </div>
+            {paragraph.metrics?.sentence_risks?.length ? (
+              <details className="mt-3 rounded-lg border border-ink-100 bg-ink-50/50 px-3 py-2">
+                <summary className="cursor-pointer text-xs font-medium text-ink-600">
+                  句子级规则命中 {paragraph.metrics.sentence_risks.length} 句
+                </summary>
+                <ul className="mt-2 space-y-2">
+                  {paragraph.metrics.sentence_risks.map((risk, index) => {
+                    const key = `${paragraph.index}-${index}`;
+                    const result = sentenceResults[key];
+                    const busy = sentenceBusy === key;
+                    return (
+                      <li
+                        key={key}
+                        className="rounded-md border border-ink-100 bg-white px-3 py-2 text-xs"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span
+                            className={
+                              risk.hits >= 2
+                                ? "font-medium text-red-600"
+                                : risk.hits === 1
+                                  ? "font-medium text-amber-600"
+                                  : "text-emerald-600"
+                            }
+                          >
+                            命中 {risk.hits} · 风险 {risk.risk}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRewriteSentence(key, risk.text)}
+                            disabled={busy}
+                            className="rounded-md border border-ink-200 px-2 py-0.5 text-[11px] text-ink-600 hover:bg-ink-50 disabled:opacity-60"
+                          >
+                            {busy ? "重写中…" : "重写这句"}
+                          </button>
+                        </div>
+                        <div className="mt-1 select-text text-ink-700">{risk.text}</div>
+                        {result && (
+                          <div className="mt-2 rounded-md bg-emerald-50 px-2 py-1.5 text-ink-700">
+                            <div className="text-[11px] text-emerald-700">
+                              建议 · 风险 {result.risk_before} → {result.risk_after}
+                            </div>
+                            <div className="mt-1 select-text">{result.rewritten}</div>
+                            <button
+                              type="button"
+                              onClick={() => navigator.clipboard.writeText(result.rewritten)}
+                              className="mt-1 text-[11px] text-accent-700 hover:underline"
+                            >
+                              复制这句
+                            </button>
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            ) : null}
           </article>
         ))}
       </section>

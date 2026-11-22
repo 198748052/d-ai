@@ -6,8 +6,11 @@ from app.services.rewriter.context_guard import load_whitelist
 from app.services.rewriter.orchestrator import (
     RewriteContext,
     _sentence_coverage,
+    _sentence_risks,
     rewrite_document,
+    rewrite_single,
 )
+from app.services.rewriter.rule_engine import Rule, RuleEngine
 
 _REWRITES = [
     "作者在这里换了一种说法，把原来的判断拆成两个层次来讲。",
@@ -106,6 +109,21 @@ class FullCoverageRewriteTest(unittest.IsolatedAsyncioTestCase):
         response = await rewrite_document(text, self._context(), [], NoopParagraphLLM())
         self.assertEqual(response.paragraphs[0].rewritten, "一、研究背景")
         self.assertGreaterEqual(response.stats.coverage, 0.9)
+
+    async def test_rewrite_single_returns_rewritten_text(self) -> None:
+        text = "本文围绕A对B的影响展开研究，并讨论了作用机制。"
+        result, _warnings = await rewrite_single(
+            text, self._context(), [], NoopParagraphLLM()
+        )
+        self.assertNotEqual(result.rewritten, text)
+
+    def test_sentence_risks_report_rule_hits(self) -> None:
+        ctx = self._context()
+        engine = RuleEngine([Rule("赋能", ["提升"], "lexicon", "high")], load_whitelist())
+        risks = _sentence_risks("赋能行业。正常句子。", engine, ctx)
+        self.assertEqual(len(risks), 2)
+        self.assertGreaterEqual(risks[0]["hits"], 1)
+        self.assertGreaterEqual(risks[0]["risk"], 0.0)
 
 
 if __name__ == "__main__":

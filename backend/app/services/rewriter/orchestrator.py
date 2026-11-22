@@ -113,6 +113,26 @@ def _sentence_coverage(original: str, rewritten: str) -> tuple[float, int, int]:
     return round(changed / len(sentences), 4), changed, untouched
 
 
+def _sentence_risks(text: str, engine: RuleEngine, ctx: RewriteContext) -> list[dict]:
+    """Per-sentence rule hits and proxy risk, used by the sentence heatmap."""
+    risks: list[dict] = []
+    for sentence in split_sentences(text):
+        stripped = sentence.strip()
+        if not stripped:
+            continue
+        hits = collect_hits(stripped, engine, whitelist=ctx.whitelist, limit=8)
+        diagnosis = diagnose(stripped, ctx.style)
+        risks.append(
+            {
+                "text": stripped,
+                "risk": round(float(diagnosis.get("total_per_1000") or 0.0), 2),
+                "hits": sum(int(hit.get("count") or 0) for hit in hits),
+                "dominant": diagnosis.get("dominant_label") or "",
+            }
+        )
+    return risks
+
+
 @dataclass
 class RewriteContext:
     mode: str = "hybrid"
@@ -815,6 +835,7 @@ async def _rewrite_one(
         metrics["changed_sentences"] = changed_sentences
         metrics["untouched_sentences"] = untouched
         metrics["dominant"] = diag_after.get("dominant_label")
+        metrics["sentence_risks"] = _sentence_risks(restored, audit_engine, ctx)
         metrics["diagnosis_issues"] = [
             item.get("label") for item in (diag_after.get("plan") or [])[:4]
         ]
@@ -986,6 +1007,7 @@ async def _rewrite_document_level(
         metrics["changed_sentences"] = changed
         metrics["untouched_sentences"] = untouched
         metrics["dominant"] = diag_after.get("dominant_label")
+        metrics["sentence_risks"] = _sentence_risks(rewritten, engine, ctx)
         metrics["diagnosis_issues"] = [
             item.get("label") for item in (diag_after.get("plan") or [])[:4]
         ]
@@ -1051,6 +1073,26 @@ async def _finalize_response(
         )
     response.audit = AuditResult(**audit_result)
     return response
+
+
+async def rewrite_single(
+    text: str,
+    ctx: RewriteContext,
+    rules: list[Rule],
+    llm: LLMEngine | None,
+) -> tuple[ParagraphResult, list[str]]:
+    """Rewrite one sentence/paragraph for the sentence-level retry action."""
+    warnings: list[str] = []
+    result = await _rewrite_one(
+        0,
+        text,
+        ctx,
+        rules,
+        llm,
+        warnings,
+        asyncio.Semaphore(1),
+    )
+    return result, warnings
 
 
 async def rewrite_document(

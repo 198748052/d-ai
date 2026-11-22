@@ -19,6 +19,12 @@ from ..deps import SESSION_COOKIE, SESSION_DAYS, current_user, require_user
 from ..models.models import AuthSession, User
 from ..services.credits import FREE_SIGNUP_CREDITS, grant
 from ..services.emailer import EmailError, configured as email_configured, send_code
+from ..services.ratelimit import (
+    LoginBlocked,
+    check_login_allowed,
+    clear_login_failures,
+    record_login_failure,
+)
 from ..services.verification import CodeError, issue_code, verify_code
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -66,7 +72,17 @@ def _profile(user: User) -> dict:
     }
 
 
-def _start_session(session: Session, user: User, response: Response) -> None:
+def _request_is_https(request: Request) -> bool:
+    forwarded = request.headers.get("x-forwarded-proto", "").split(",")[0].strip()
+    return request.url.scheme == "https" or forwarded == "https"
+
+
+def _start_session(
+    session: Session,
+    user: User,
+    response: Response,
+    request: Request,
+) -> None:
     token = new_session_token()
     expires = datetime.now(timezone.utc) + timedelta(days=SESSION_DAYS)
     session.add(
@@ -82,6 +98,7 @@ def _start_session(session: Session, user: User, response: Response) -> None:
         token,
         max_age=SESSION_DAYS * 24 * 3600,
         httponly=True,
+        secure=_request_is_https(request),
         samesite="lax",
         path="/",
     )
@@ -132,6 +149,7 @@ async def send_verification_code(
 @router.post("/register")
 def register(
     payload: RegisterIn,
+    request: Request,
     response: Response,
     session: Session = Depends(get_session),
 ):
@@ -166,24 +184,35 @@ def register(
     grant(session, user, FREE_SIGNUP_CREDITS, "注册赠送")
     session.commit()
     session.refresh(user)
-    _start_session(session, user, response)
+    _start_session(session, user, response, request)
     return _profile(user)
 
 
 @router.post("/login")
 def login(
     payload: LoginIn,
+    request: Request,
     response: Response,
     session: Session = Depends(get_session),
 ):
     email = payload.email.strip().lower()
+    ip = request.client.host if request.client else ""
+    try:
+        check_login_allowed(ip, email)
+    except LoginBlocked as exc:
+        raise HTTPException(
+            status_code=429,
+            detail=f"登录失败次数过多，请 {exc.retry_after} 秒后再试",
+        ) from exc
     user = session.exec(select(User).where(User.email == email)).first()
     if user is None or not verify_password(payload.password, user.password_hash):
+        record_login_failure(ip, email)
         raise HTTPException(status_code=401, detail="邮箱或密码错误")
+    clear_login_failures(ip, email)
     user.last_login_at = datetime.now(timezone.utc)
     session.add(user)
     session.commit()
-    _start_session(session, user, response)
+    _start_session(session, user, response, request)
     return _profile(user)
 
 
@@ -232,6 +261,7 @@ def reset_password(
 @router.post("/change-password")
 def change_password(
     payload: ChangePasswordIn,
+    request: Request,
     response: Response,
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
@@ -247,7 +277,7 @@ def change_password(
     for row in session.exec(select(AuthSession).where(AuthSession.user_id == user.id)).all():
         session.delete(row)
     session.commit()
-    _start_session(session, user, response)
+    _start_session(session, user, response, request)
     return {"ok": True}
 
 

@@ -126,6 +126,21 @@ class RewriteResponse(BaseModel):
     candidate_scores: list[dict] = Field(default_factory=list)
 
 
+class SentenceRewriteRequest(BaseModel):
+    text: str
+    style: str = "academic"
+    lexicon_scope: str = "academic"
+
+
+class SentenceRewriteResponse(BaseModel):
+    original: str
+    rewritten: str
+    risk_before: float = 0.0
+    risk_after: float = 0.0
+    changed_ratio: float = 0.0
+    warnings: list[str] = Field(default_factory=list)
+
+
 class LLMSettingIn(BaseModel):
     provider: str = "openai"
     base_url: str = "https://api.openai.com/v1"

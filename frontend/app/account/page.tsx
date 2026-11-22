@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/api";
 import { useAuth } from "@/components/AuthContext";
-import type { CreditLogItem } from "@/lib/types";
+import type { CreditLogItem, UsageDay } from "@/lib/types";
 
 export default function AccountPage() {
   const { user, loading, refresh } = useAuth();
   const [logs, setLogs] = useState<CreditLogItem[]>([]);
+  const [usage, setUsage] = useState<UsageDay[]>([]);
   const [code, setCode] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -28,9 +29,21 @@ export default function AccountPage() {
     }
   }, []);
 
+  const loadUsage = useCallback(async () => {
+    try {
+      const data = await apiGet<UsageDay[]>("/api/credits/usage?days=7");
+      setUsage(data);
+    } catch {
+      setUsage([]);
+    }
+  }, []);
+
   useEffect(() => {
-    if (user) loadLogs();
-  }, [user, loadLogs]);
+    if (user) {
+      loadLogs();
+      loadUsage();
+    }
+  }, [user, loadLogs, loadUsage]);
 
   const redeem = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -91,6 +104,8 @@ export default function AccountPage() {
     );
   }
 
+  const maxUsage = Math.max(1, ...usage.map((item) => item.chars));
+
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
@@ -107,6 +122,33 @@ export default function AccountPage() {
           </div>
         </div>
         <div className="mt-3 text-xs text-ink-500">账号：{user.email}</div>
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <h2 className="text-sm font-semibold text-ink-900">近 7 天用量</h2>
+        <p className="mt-1 text-xs text-ink-500">按任务扣费字数统计，柱高表示当天消耗。</p>
+        <div className="mt-4 flex h-28 items-end gap-2">
+          {usage.map((day) => {
+            const height = Math.max(4, Math.round((day.chars / maxUsage) * 100));
+            return (
+              <div
+                key={day.date}
+                className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                title={`${day.date}：${day.chars} 字，${day.jobs} 个任务`}
+              >
+                <div className="text-[10px] text-ink-500">{day.chars}</div>
+                <div
+                  className="w-full rounded-t bg-accent-500"
+                  style={{ height: `${height}%` }}
+                />
+                <div className="text-[10px] text-ink-400">{day.date.slice(5)}</div>
+              </div>
+            );
+          })}
+          {usage.length === 0 && (
+            <div className="pb-6 text-xs text-ink-400">暂无用量记录</div>
+          )}
+        </div>
       </section>
 
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">

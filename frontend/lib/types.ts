@@ -1,3 +1,10 @@
+export interface SentenceRisk {
+  text: string;
+  risk: number;
+  hits: number;
+  dominant?: string;
+}
+
 export interface ParagraphMetrics {
   sentences?: number;
   cv?: number;
@@ -8,6 +15,7 @@ export interface ParagraphMetrics {
   coverage?: number;
   changed_sentences?: number;
   untouched_sentences?: number;
+  sentence_risks?: SentenceRisk[];
 }
 
 export interface ParagraphResult {
@@ -282,6 +290,21 @@ export interface CreditLogItem {
   reason: string;
   balance_after: number;
   created_at: string;
+}
+
+export interface UsageDay {
+  date: string;
+  chars: number;
+  jobs: number;
+}
+
+export interface SentenceRewriteResult {
+  original: string;
+  rewritten: string;
+  risk_before: number;
+  risk_after: number;
+  changed_ratio: number;
+  warnings: string[];
 }
 
 export interface AdminUser {

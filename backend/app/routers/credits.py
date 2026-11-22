@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from ..db.database import get_session
 from ..deps import require_user
-from ..models.models import User
+from ..models.models import RewriteJob, User
 from ..services.credits import RedeemError, logs, redeem
 
 router = APIRouter(prefix="/api/credits", tags=["credits"])
@@ -19,6 +21,38 @@ class RedeemIn(BaseModel):
 @router.get("")
 def read_balance(user: User = Depends(require_user)):
     return {"credits": user.credits, "email": user.email, "is_admin": user.is_admin}
+
+
+@router.get("/usage")
+def read_usage(
+    days: int = 7,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    days = min(max(days, 1), 30)
+    now = datetime.now(timezone.utc)
+    start = (now - timedelta(days=days - 1)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    rows = session.exec(
+        select(RewriteJob).where(
+            RewriteJob.user_id == user.id,
+            RewriteJob.created_at >= start,
+        )
+    ).all()
+    buckets: dict[str, dict] = {}
+    for offset in range(days):
+        day = (start + timedelta(days=offset)).date().isoformat()
+        buckets[day] = {"date": day, "chars": 0, "jobs": 0}
+    for row in rows:
+        created = row.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=timezone.utc)
+        key = created.date().isoformat()
+        if key in buckets:
+            buckets[key]["chars"] += int(row.charged_chars or 0)
+            buckets[key]["jobs"] += 1
+    return list(buckets.values())
 
 
 @router.get("/logs")

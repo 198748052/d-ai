@@ -22,15 +22,19 @@ from ..schemas import (
     ClarifyResponse,
     RewriteRequest,
     RewriteResponse,
+    SentenceRewriteRequest,
+    SentenceRewriteResponse,
 )
 from ..services.rewriter.audit import audit_text
 from ..services.rewriter.content import content_density, scan_content_needs
+from ..services.rewriter.diagnosis import diagnose
 from ..services.rewriter.llm_engine import LLMEngine, LLMError
 from ..services.rewriter.jobs import JOBS, get_job, new_job
 from ..services.rewriter.orchestrator import (
     build_context,
     load_rules,
     rewrite_document,
+    rewrite_single,
 )
 from ..services.rewriter.rule_engine import RuleEngine
 from ..services.segmenter import split_paragraphs
@@ -156,6 +160,46 @@ def clarify(req: ClarifyRequest, _: User = Depends(require_user)):
     return ClarifyResponse(
         questions=[ClarifyQuestion(**question.__dict__) for question in questions],
         content_density=content_density(req.text),
+    )
+
+
+@router.post("/rewrite/sentence", response_model=SentenceRewriteResponse)
+async def rewrite_sentence_endpoint(
+    payload: SentenceRewriteRequest,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    text = payload.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="请输入需要重写的句子")
+    if len(text) > 2000:
+        raise HTTPException(status_code=400, detail="单句重写上限 2000 字")
+    req = RewriteRequest(
+        text=text,
+        style=payload.style,
+        lexicon_scope=payload.lexicon_scope,
+    )
+    ctx, rules, llm = _resolve(session, req)
+    if llm is None or not llm.configured:
+        raise HTTPException(status_code=400, detail="LLM 未配置")
+    # 单句重写允许标题式句子也参与改写。
+    ctx.rewrite_headings = True
+    charged = _charge(session, user, text)
+    try:
+        result, warnings = await rewrite_single(text, ctx, rules, llm)
+    except LLMError as exc:
+        _refund(user.id, charged, "单句重写失败退款")
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        _refund(user.id, charged, "单句重写失败退款")
+        raise HTTPException(status_code=500, detail="单句重写失败") from exc
+    return SentenceRewriteResponse(
+        original=text,
+        rewritten=result.rewritten,
+        risk_before=round(float(diagnose(text, ctx.style)["total_per_1000"]), 2),
+        risk_after=round(float(result.metrics.get("ai_per_1000") or 0.0), 2),
+        changed_ratio=result.changed_ratio,
+        warnings=warnings,
     )
 
 
@@ -485,9 +529,12 @@ async def create_rewrite_job(
 
 
 @router.get("/rewrite/jobs/{job_id}")
-def get_rewrite_job(job_id: str):
+def get_rewrite_job(
+    job_id: str,
+    user: User = Depends(require_user),
+):
     job = get_job(job_id)
-    if job is None:
+    if job is None or (not user.is_admin and job.user_id != user.id):
         raise HTTPException(status_code=404, detail="任务不存在或已过期")
     return {
         "job_id": job.id,
@@ -508,7 +555,11 @@ def get_rewrite_job(job_id: str):
 
 
 @router.post("/audit", response_model=AuditResult)
-def audit(req: AuditRequest, session: Session = Depends(get_session)):
+def audit(
+    req: AuditRequest,
+    _: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
     if not req.text or not req.text.strip():
         raise HTTPException(status_code=400, detail="请输入需要验证的文本")
     rewrite_req = RewriteRequest(
