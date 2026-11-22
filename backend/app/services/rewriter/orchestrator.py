@@ -31,6 +31,7 @@ from .features import analyze, paragraph_metrics, uniform_runs
 from .guards import (
     acceptable,
     clean_candidate,
+    has_duplication,
     merge_short_runs,
     quality_compare,
 )
@@ -46,6 +47,11 @@ EmitFn = Callable[[ParagraphResult], Awaitable[None]]
 _HEADING_RE = re.compile(
     r"^\s*(?:[（(][一二三四五六七八九十\d]+[）)]|\d+[.、]|[一二三四五六七八九十]+[、.])[^\n]{0,40}$"
 )
+
+# 全文覆盖率目标：除标题外，至少这么多比例的句子必须真正被改写。
+COVERAGE_TARGET = 0.95
+COVERAGE_PASSES = 1
+_WS_RE = re.compile(r"\s+")
 
 
 def _is_heading(text: str) -> bool:
@@ -83,6 +89,30 @@ def _chunk_sentences(text: str, max_chars: int = 200, max_sentences: int = 3) ->
     return chunks
 
 
+def _normalize_sentence(text: str) -> str:
+    return _WS_RE.sub("", text or "")
+
+
+def _untouched_sentences(original: str, rewritten: str) -> list[str]:
+    """Return original sentences that still appear verbatim in the rewrite."""
+    rewritten_norm = _normalize_sentence(rewritten)
+    untouched: list[str] = []
+    for sentence in split_sentences(original):
+        normalized = _normalize_sentence(sentence)
+        if normalized and normalized in rewritten_norm:
+            untouched.append(sentence.strip())
+    return untouched
+
+
+def _sentence_coverage(original: str, rewritten: str) -> tuple[float, int, int]:
+    sentences = [s for s in split_sentences(original) if s.strip()]
+    if not sentences:
+        return 1.0, 0, 0
+    untouched = len(_untouched_sentences(original, rewritten))
+    changed = max(0, len(sentences) - untouched)
+    return round(changed / len(sentences), 4), changed, untouched
+
+
 @dataclass
 class RewriteContext:
     mode: str = "hybrid"
@@ -114,6 +144,7 @@ class RewriteContext:
     deep_rewrite: bool = False
     structure_mode: str = "preserve"
     rewrite_granularity: str = "hybrid"
+    rewrite_headings: bool = False
 
 
 def load_rules(session: Session, lexicon_scope: str, style: str = "general") -> list[Rule]:
@@ -213,6 +244,7 @@ def build_context(req: RewriteRequest, session: Session) -> RewriteContext:
     ctx.rewrite_granularity = (
         req.rewrite_granularity if req.rewrite_granularity in {"hybrid", "document"} else "hybrid"
     )
+    ctx.rewrite_headings = bool(req.rewrite_headings)
     if setting is not None:
         if not req.candidate_count:
             ctx.candidate_count = max(1, min(5, int(getattr(setting, "candidate_count", 1) or 1)))
@@ -344,6 +376,53 @@ async def _enforce_perplexity(
     return current
 
 
+async def _ensure_coverage(
+    index: int,
+    masked_source: str,
+    current: str,
+    llm: LLMEngine | None,
+    llm_ctx: LLMContext | None,
+    warnings: list[str],
+    max_passes: int = COVERAGE_PASSES,
+) -> str:
+    """Force another whole-paragraph rewrite when sentences were left untouched."""
+    if llm is None or llm_ctx is None or not llm.configured:
+        return current
+    for _ in range(max_passes):
+        coverage, _changed, _untouched_count = _sentence_coverage(masked_source, current)
+        if coverage >= COVERAGE_TARGET:
+            return current
+        untouched = _untouched_sentences(masked_source, current)
+        if not untouched:
+            return current
+        try:
+            candidate = await llm.rewrite_unchanged(
+                current, untouched, llm_ctx, context=masked_source
+            )
+        except LLMError as exc:
+            warnings.append(f"第 {index + 1} 段补全覆盖失败：{exc}")
+            return current
+        if not candidate or not candidate.strip():
+            return current
+        if not LLMEngine.placeholders_intact(masked_source, candidate):
+            warnings.append(f"第 {index + 1} 段补全覆盖后占位符未完整保留，已保留上一轮结果")
+            return current
+        candidate = _clean_candidate(current, candidate)
+        ok, reason = acceptable(
+            current, candidate, max_ratio=2.5, min_ratio=0.4, allow_overfit=True
+        )
+        if not ok or has_duplication(candidate):
+            warnings.append(f"第 {index + 1} 段补全覆盖结果未通过（{reason or '结果重复'}）")
+            return current
+        current = candidate
+    coverage, _changed, untouched_count = _sentence_coverage(masked_source, current)
+    if untouched_count and coverage < COVERAGE_TARGET:
+        warnings.append(
+            f"第 {index + 1} 段仍有 {untouched_count} 句未改写，覆盖率 {coverage:.0%}"
+        )
+    return current
+
+
 async def _rewrite_one(
     index: int,
     paragraph: str,
@@ -359,14 +438,15 @@ async def _rewrite_one(
     async with semaphore:
         if pause_event is not None:
             await pause_event.wait()
-        if _is_heading(paragraph):
+        heading = _is_heading(paragraph)
+        if heading and not ctx.rewrite_headings:
             return ParagraphResult(
                 index=index,
                 original=paragraph,
                 rewritten=paragraph,
                 changed_ratio=0.0,
                 length_ratio=1.0,
-                metrics={},
+                metrics={"coverage": 1.0, "heading": True},
             )
 
         source, leak_hits = clean_leakage(paragraph)
@@ -411,6 +491,7 @@ async def _rewrite_one(
                 plan=list(diag_before.get("plan") or []),
                 content_facts=paragraph_facts,
                 deep_rewrite=ctx.deep_rewrite,
+                rewrite_headings=ctx.rewrite_headings,
             )
             academic = ctx.style in {"academic", "official"}
             chunks = _chunk_sentences(
@@ -460,6 +541,43 @@ async def _rewrite_one(
                             continue
                         candidates.append(candidate)
                     if not candidates:
+                        fallback = None
+                        try:
+                            fallback = await llm.rewrite_paragraph(
+                                piece,
+                                llm_ctx,
+                                round_index,
+                                hits=hits,
+                                context=current,
+                                temperature=min(1.7, 1.5 + 0.1 * round_index),
+                            )
+                        except LLMError as exc:
+                            warnings.append(
+                                f"第 {index + 1} 段第 {chunk_index + 1} 片降级改写失败：{exc}"
+                            )
+                        fallback_ratio = (
+                            len(fallback) / max(1, len(piece)) if fallback else 0.0
+                        )
+                        if (
+                            fallback
+                            and fallback.strip()
+                            and 0.3 <= fallback_ratio <= 3.0
+                            and LLMEngine.placeholders_intact(piece, fallback)
+                        ):
+                            fallback = _clean_candidate(piece, fallback)
+                            if fallback.strip() and not has_duplication(fallback):
+                                piece = fallback
+                                llm_used = True
+                                warnings.append(
+                                    f"第 {index + 1} 段第 {chunk_index + 1} 片候选未通过护栏，已采用降级改写结果"
+                                )
+                                hits = collect_hits(
+                                    piece, audit_engine, whitelist=ctx.whitelist
+                                )
+                        else:
+                            warnings.append(
+                                f"第 {index + 1} 段第 {chunk_index + 1} 片未能改写，保留规则处理结果"
+                            )
                         break
                     if len(candidates) == 1:
                         best = candidates[0]
@@ -499,7 +617,7 @@ async def _rewrite_one(
                     continue
                 current = candidate
 
-            if academic:
+            if academic and not heading:
                 for _ in range(2 if len(current) >= 60 else 0):
                     metrics = analyze(current)
                     runs = uniform_runs(current)
@@ -570,6 +688,10 @@ async def _rewrite_one(
                         ):
                             current = adjusted
 
+            current = await _ensure_coverage(
+                index, masked, current, llm, llm_ctx, warnings
+            )
+
         if ctx.use_rule_engine and ctx.mode == "hybrid":
             current = await asyncio.to_thread(engine.audit, current, options)
 
@@ -603,6 +725,11 @@ async def _rewrite_one(
                         current = candidate
                 except LLMError:
                     pass
+
+        if llm is not None and llm_ctx is not None and not heading:
+            current = await _ensure_coverage(
+                index, masked, current, llm, llm_ctx, warnings
+            )
 
         restored = protector.restore(current, spans)
         restored, leak_after = clean_leakage(restored)
@@ -669,15 +796,23 @@ async def _rewrite_one(
                     diag_after = merged_diag
                     quality = quality_compare(diag_before, diag_after)
 
-        # 反回归：改写把总特征密度显著推高时，保留原文更安全。
+        # 全文都要降：密度上升只提示复核，不再把整段退回原文。
         if diag_after["total_per_1000"] > diag_before["total_per_1000"] + 1.5:
-            warnings.append(f"第 {index + 1} 段改写后 AI 特征密度上升，已保留原文")
-            restored = source
-            diag_after = diag_before
-            quality = quality_compare(diag_before, diag_after)
+            warnings.append(
+                f"第 {index + 1} 段改写后 AI 特征密度上升，已保留改写结果，建议人工复核"
+            )
+
+        coverage, changed_sentences, untouched = _sentence_coverage(source, restored)
+        if coverage < COVERAGE_TARGET and not heading:
+            warnings.append(
+                f"第 {index + 1} 段覆盖率 {coverage:.0%}，仍有 {untouched} 句接近原文"
+            )
 
         metrics = paragraph_metrics(restored)
         metrics["ai_per_1000"] = diag_after.get("total_per_1000")
+        metrics["coverage"] = coverage
+        metrics["changed_sentences"] = changed_sentences
+        metrics["untouched_sentences"] = untouched
         metrics["dominant"] = diag_after.get("dominant_label")
         metrics["diagnosis_issues"] = [
             item.get("label") for item in (diag_after.get("plan") or [])[:4]
@@ -704,12 +839,34 @@ def _build_response(
     original_chars = sum(len(r.original) for r in results)
     rewritten_chars = sum(len(r.rewritten) for r in results)
     paragraphs = len(results)
+    total_sentences = 0
+    changed_sentences = 0
+    for result in results:
+        if _is_heading(result.original):
+            continue
+        total_sentences += len(
+            [sentence for sentence in split_sentences(result.original) if sentence.strip()]
+        )
+        _coverage, changed, _untouched = _sentence_coverage(
+            result.original, result.rewritten
+        )
+        changed_sentences += changed
+    coverage = (
+        round(changed_sentences / total_sentences, 4) if total_sentences else 1.0
+    )
+    if total_sentences and coverage < COVERAGE_TARGET:
+        warnings.append(
+            f"全文覆盖率 {coverage:.0%}，低于目标 {COVERAGE_TARGET:.0%}，部分句子仍接近原文"
+        )
     stats = RewriteStats(
         paragraphs=paragraphs,
         original_chars=original_chars,
         rewritten_chars=rewritten_chars,
         avg_changed_ratio=round(sum(r.changed_ratio for r in results) / max(1, paragraphs), 4),
         avg_length_ratio=round(sum(r.length_ratio for r in results) / max(1, paragraphs), 4),
+        sentences=total_sentences,
+        rewritten_sentences=changed_sentences,
+        coverage=coverage,
     )
     return RewriteResponse(
         paragraphs=results,
@@ -752,7 +909,7 @@ async def _rewrite_document_level(
     )
     rewritten_paragraphs: list[str] = []
     for paragraph in masked_paragraphs:
-        if _is_heading(paragraph):
+        if _is_heading(paragraph) and not ctx.rewrite_headings:
             rewritten_paragraphs.append(paragraph)
         else:
             rewritten_paragraphs.append(
@@ -774,6 +931,7 @@ async def _rewrite_document_level(
         plan=list(ctx.diagnosis_before.get("plan") or []),
         content_facts=list(ctx.content_facts),
         deep_rewrite=ctx.deep_rewrite,
+        rewrite_headings=ctx.rewrite_headings,
     )
     try:
         candidate = await llm.rewrite_document(masked_document, llm_ctx, hits, context=text)
@@ -795,14 +953,37 @@ async def _rewrite_document_level(
         )
         return None
 
+    total_sentences = 0
+    changed_sentences = 0
+    for original, rewritten in zip(paragraphs, new_paragraphs):
+        if _is_heading(original) and not ctx.rewrite_headings:
+            continue
+        total_sentences += len(
+            [sentence for sentence in split_sentences(original) if sentence.strip()]
+        )
+        _coverage, changed, _untouched = _sentence_coverage(original, rewritten)
+        changed_sentences += changed
+    document_coverage = (
+        round(changed_sentences / total_sentences, 4) if total_sentences else 1.0
+    )
+    if total_sentences and document_coverage < COVERAGE_TARGET:
+        warnings.append(
+            f"文档级改写覆盖率 {document_coverage:.0%} 低于目标，回退混合粒度补写"
+        )
+        return None
+
     results: list[ParagraphResult] = []
     for index, (original, rewritten) in enumerate(zip(paragraphs, new_paragraphs)):
-        if _is_heading(original):
+        if _is_heading(original) and not ctx.rewrite_headings:
             rewritten = original
         rewritten, _ = clean_leakage(rewritten)
         diag_after = diagnose(rewritten, ctx.style)
+        coverage, changed, untouched = _sentence_coverage(original, rewritten)
         metrics = paragraph_metrics(rewritten)
         metrics["ai_per_1000"] = diag_after.get("total_per_1000")
+        metrics["coverage"] = coverage
+        metrics["changed_sentences"] = changed
+        metrics["untouched_sentences"] = untouched
         metrics["dominant"] = diag_after.get("dominant_label")
         metrics["diagnosis_issues"] = [
             item.get("label") for item in (diag_after.get("plan") or [])[:4]

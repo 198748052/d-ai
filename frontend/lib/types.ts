@@ -5,6 +5,9 @@ export interface ParagraphMetrics {
   long_count?: number;
   opening_repeats?: number;
   hedge_count?: number;
+  coverage?: number;
+  changed_sentences?: number;
+  untouched_sentences?: number;
 }
 
 export interface ParagraphResult {
@@ -22,6 +25,9 @@ export interface RewriteStats {
   rewritten_chars: number;
   avg_changed_ratio: number;
   avg_length_ratio: number;
+  sentences?: number;
+  rewritten_sentences?: number;
+  coverage?: number;
 }
 
 export interface AuditItem {
@@ -327,6 +333,7 @@ export interface RewritePayload {
   deep_rewrite?: boolean;
   structure_mode?: "preserve" | "flexible";
   rewrite_granularity?: "hybrid" | "document";
+  rewrite_headings?: boolean;
 }
 
 export interface DetectorFeedback {

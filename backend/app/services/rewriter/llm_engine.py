@@ -51,6 +51,7 @@ class LLMContext:
     plan: list[dict] = None
     content_facts: list[dict] = None
     deep_rewrite: bool = True
+    rewrite_headings: bool = False
 
     def __post_init__(self) -> None:
         if self.banned_words is None:
@@ -202,13 +203,19 @@ class LLMEngine:
         lines = [
             "你是学术论文编辑。下面是一整篇论文，请做整篇改写，降低机器生成特征。",
             "必须遵守：",
-            "1. 保持段落数量、顺序、标题、序号和分点层次不变。",
+            "1. 保持段落数量、顺序、序号和分点层次不变。",
             "2. 事实、数据、术语、变量名、引用、公式、结论保持不变。",
             "3. 原样保留所有形如 ⟦A⟧ ⟦B⟧ 的占位符，编号与位置对应。",
             "4. 只输出正文，段落之间用空行分隔，不要解释、不要编号、不要引号。",
             "5. 允许调整句内信息顺序、主被动和从句边界；不要新增原文没有的事实、数字、案例、引用。",
             "6. 长短句交错，避免连续三句长度接近；保留学术语体。",
+            "7. 每一段每一句都要重写，不得原样保留任何一句。",
         ]
+        lines.append(
+            "- 标题措辞可以改写，但序号和编号格式必须保持不变。"
+            if ctx.rewrite_headings
+            else "- 标题必须原样保留，不要改动标题措辞。"
+        )
         if ctx.deep_rewrite:
             lines.extend(
                 [
@@ -446,8 +453,8 @@ class LLMEngine:
         lines = [
             "你是审稿编辑。下面这段文字里有些句子过于可预测，读起来像模板拼出来的（困惑度偏低）。",
             "请重写这些句子：换具体说法、调整语序、补充限定条件或细节，让它们更像真人写的。",
-            "不要扩写，不要新增原文没有的信息；改写后整段长度与原文接近（±10% 以内）。",
-            "其余句子尽量保持不动，原意、术语、数据、引用、占位符和段落结构不变。",
+            "不要扩写，不要新增原文没有的信息；改写后整段长度与原文接近（±15% 以内）。",
+            "整段一起重写，重点处理下列句子；原意、术语、数据、引用、占位符和段落结构不变。",
             "只输出整段正文，不要解释、不要编号、不要换行。",
             "",
             "必须重写的句子：",
@@ -460,6 +467,37 @@ class LLMEngine:
             {"role": "user", "content": text},
         ]
         raw = await self._chat(messages, temperature=1.35)
+        cleaned = self._postprocess(raw)
+        if not cleaned:
+            raise LLMError("LLM 返回内容为空")
+        return cleaned
+
+    async def rewrite_unchanged(
+        self,
+        text: str,
+        untouched: list[str],
+        ctx: LLMContext,
+        context: str | None = None,
+    ) -> str:
+        """Rewrite a paragraph again when some sentences were left untouched."""
+        lines = [
+            "你是审稿编辑。下面这段文字整体仍偏机器生成，其中一些句子几乎没有改动。",
+            "请整段重写：每一句都要换一种说法，不得原样保留任何一句。",
+            "保持原意、术语、数据、引用、占位符和段落结构不变，不要新增原文没有的信息。",
+            "只输出整段正文，不要解释、不要编号、不要换行。",
+            "",
+            "必须改写的句子：",
+        ]
+        for index, sentence in enumerate(untouched[:10], 1):
+            lines.append(f"{index}. 「{sentence}」")
+        self._append_lessons(lines, ctx)
+        if context:
+            lines.extend(["", "整段上下文（仅供理解，不要输出）：", context])
+        messages = [
+            {"role": "system", "content": "\n".join(lines)},
+            {"role": "user", "content": text},
+        ]
+        raw = await self._chat(messages, temperature=1.45)
         cleaned = self._postprocess(raw)
         if not cleaned:
             raise LLMError("LLM 返回内容为空")
@@ -503,6 +541,7 @@ class LLMEngine:
             header,
             "",
             "必须遵守：",
+            "- 整段每一句都要重写，不得原样保留任何一句；不要只替换命中清单里的词。",
             "1. 一段进，一段出。不拆分、不合并、不加标题或列表。",
             "2. 事实、数据、术语、变量名、引用、公式、结论保持不变。",
             "3. 原样保留所有形如 ⟦A⟧ ⟦B⟧ 的占位符，编号与位置都要对应。",
@@ -510,7 +549,7 @@ class LLMEngine:
             "5. 保持学术语体，但允许自然的书面口语连接和适度冗余；不要过度润色，不要把所有句子都改成工整的短句。",
             "",
             "结构要求：",
-            "- 原文中的序号（第一、第二、1.、2.、（一）（二））和小标题必须原样保留，编号格式不要改动。",
+            "- 原文中的序号（第一、第二、1.、2.、（一）（二））和编号格式必须原样保留。",
             "- 保留原文的分点层次和段落内部顺序。",
             "",
             "需要清除的机器特征（按优先级）：",
@@ -616,6 +655,10 @@ class LLMEngine:
             f"改写后字数控制在原文的 {ctx.length_ratio_min:.2f} 到 {ctx.length_ratio_max:.2f} 之间",
             f"禁止出现的词或表达：{banned}",
         ]
+        if ctx.rewrite_headings:
+            lines.append("- 小标题措辞可以改写，但序号和编号格式必须保持不变。")
+        else:
+            lines.append("- 小标题必须原样保留，不要改动标题措辞。")
         if round_index > 0:
             lines.extend(
                 [
@@ -662,6 +705,7 @@ class LLMEngine:
             header,
             "",
             "必须遵守：",
+            "- 整段每一句都要重写，不得原样保留任何一句；不要只替换命中清单里的词。",
             "1. 一段进，一段出。不拆分、不合并、不加标题或列表。",
             "2. 事实、观点、逻辑关系、因果、条件、结论、数据含义保持不变。",
             "3. 原样保留所有形如 ⟦A⟧ ⟦B⟧ 的占位符，编号与位置都要对应，不要删除、不要翻译、不要改动括号和字母。",

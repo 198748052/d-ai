@@ -77,6 +77,7 @@ export default function WorkspacePage() {
   const [rewriteGranularity, setRewriteGranularity] = useState<"hybrid" | "document">(
     "hybrid"
   );
+  const [rewriteHeadings, setRewriteHeadings] = useState(false);
 
   useEffect(() => {
     try {
@@ -216,6 +217,7 @@ export default function WorkspacePage() {
         deep_rewrite: false,
         structure_mode: "preserve",
         rewrite_granularity: rewriteGranularity,
+        rewrite_headings: rewriteHeadings,
       });
       setTotal(jobTotal);
       setJobDbId(db_id);
@@ -265,7 +267,7 @@ export default function WorkspacePage() {
       setRunning(false);
       setJobDbId(null);
     }
-  }, [text, preset, user, router, contentFacts, rewriteGranularity]);
+  }, [text, preset, user, router, contentFacts, rewriteGranularity, rewriteHeadings]);
 
   const handleCancel = useCallback(async () => {
     if (!jobDbId) return;
@@ -367,7 +369,7 @@ export default function WorkspacePage() {
         />
 
         <div className="mt-3 rounded-lg border border-accent-100 bg-accent-50/60 px-3 py-2 text-xs text-accent-700">
-          学术模式：口语化已关闭。流程为「内容缺口扫描 → 规则库删除/替换 → 多候选 LLM 改写 → 复检与结构复核 → 特征审计」。
+          学术模式：口语化已关闭。流程为「内容缺口扫描 → 规则库删除/替换 → 全文逐段 LLM 改写 → 覆盖率补写 → 复检与结构复核 → 特征审计」。
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-500">
@@ -386,6 +388,15 @@ export default function WorkspacePage() {
               <option value="hybrid">混合（句 + 段，默认）</option>
               <option value="document">文档级</option>
             </select>
+          </label>
+          <label className="flex items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={rewriteHeadings}
+              onChange={(e) => setRewriteHeadings(e.target.checked)}
+              className="h-3.5 w-3.5"
+            />
+            连标题一起改写
           </label>
           {contentFacts.length > 0 && (
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
@@ -574,6 +585,12 @@ export default function WorkspacePage() {
                 字数比{" "}
                 <strong className="text-ink-900">{percent(stats.avg_length_ratio)}</strong>
               </span>
+              {typeof stats.coverage === "number" && (
+                <span className="text-ink-500">
+                  覆盖率{" "}
+                  <strong className="text-ink-900">{percent(stats.coverage)}</strong>
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <button

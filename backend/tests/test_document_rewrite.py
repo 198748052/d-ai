@@ -10,7 +10,7 @@ class FakeDocumentLLM:
     configured = True
 
     async def rewrite_document(self, text, ctx, hits=None, context=None):
-        return text.replace("显著提升", "提高")
+        return text.replace("显著提升", "提高").replace("有效", "仍然成立")
 
 
 class DocumentRewriteTest(unittest.IsolatedAsyncioTestCase):

@@ -153,3 +153,12 @@ This file records user instructions, preferences, and project knowledge for futu
   - 生成参数固定：温度 1.2、max_tokens 4096、并发 3、超时 120、推理强度 medium；困惑度阈值固定 45/2/20
   - Web 端已移除工作台的深度改写/结构/候选开关，`/presets` 改为只读，`/settings/llm` 移除生成参数和阈值输入
   - `PUT /api/presets/{id}` 返回 400；`PUT /api/settings/llm` 会忽略前端传入的固定字段
+
+### 全文降 AI 率策略
+- Date: 2026-11-22
+- Context: 用户明确要求主要业务以全文降 AI 率为目标
+- Instructions:
+  - 用户提交的整段文本都按高 AI 率处理，默认全文逐段改写，每个非标题段落和句子都要经过改写
+  - 不能只挑标红句或高 AI 句改写；标红句重写只作为二次补充
+  - 改写后统计覆盖率，低于 95% 要触发补写并告警
+  - 标题默认保留；需要连标题一起改写时用 `rewrite_headings` 开关

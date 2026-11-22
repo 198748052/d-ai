@@ -59,6 +59,7 @@ class RewriteRequest(BaseModel):
     deep_rewrite: bool = False
     structure_mode: Literal["preserve", "flexible"] = "preserve"
     rewrite_granularity: Literal["hybrid", "document"] = "hybrid"
+    rewrite_headings: bool = False
 
 
 class ParagraphResult(BaseModel):
@@ -76,6 +77,9 @@ class RewriteStats(BaseModel):
     rewritten_chars: int
     avg_changed_ratio: float
     avg_length_ratio: float
+    sentences: int = 0
+    rewritten_sentences: int = 0
+    coverage: float = 1.0
 
 
 class AuditItem(BaseModel):

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import random
 import re
 from dataclasses import dataclass, field
@@ -103,7 +104,9 @@ class RuleEngine:
 
     def rewrite(self, text: str, options: RewriteOptions) -> str:
         allowed = SEVERITY_BY_STRENGTH.get(options.strength, {"high", "medium", "low"})
-        rng = random.Random(hash(text) & 0xFFFFFFFF)
+        # 用稳定哈希，避免 Python 进程级哈希随机化导致同样输入结果不同。
+        digest = hashlib.sha256(text.encode("utf-8")).digest()
+        rng = random.Random(int.from_bytes(digest[:8], "big"))
         max_len = MAX_SENTENCE_LEN.get(options.strength, 75)
         comma_threshold = COMMA_SPLIT_THRESHOLD.get(options.strength, 5)
 
