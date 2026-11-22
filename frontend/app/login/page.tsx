@@ -76,7 +76,7 @@ export default function LoginPage() {
       if (mode === "login") {
         await apiSend<User>("/api/auth/login", "POST", { email, password });
         await refresh();
-        router.push("/");
+        router.push("/dashboard");
         return;
       }
       if (mode === "register") {
@@ -92,7 +92,7 @@ export default function LoginPage() {
           agreed_terms: agreed,
         });
         await refresh();
-        router.push("/");
+        router.push("/dashboard");
         return;
       }
       await apiSend<{ ok: boolean }>("/api/auth/reset-password", "POST", {

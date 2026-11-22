@@ -294,8 +294,9 @@ export default function WorkspacePage() {
     } finally {
       setRunning(false);
       setJobDbId(null);
+      await refresh();
     }
-  }, [text, preset, user, router, contentFacts, rewriteGranularity, rewriteHeadings]);
+  }, [text, preset, user, router, contentFacts, rewriteGranularity, rewriteHeadings, refresh]);
 
   const handleCancel = useCallback(async () => {
     if (!jobDbId) return;

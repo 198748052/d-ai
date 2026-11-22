@@ -8,23 +8,54 @@ import { useAuth } from "@/components/AuthContext";
 type Item = { href: string; label: string; icon: IconName };
 
 const PUBLIC_ITEMS: Item[] = [
+  { href: "/dashboard", label: "总览", icon: "home" },
   { href: "/", label: "改写工作台", icon: "edit" },
   { href: "/history", label: "任务记录", icon: "clock" },
   { href: "/account", label: "我的额度", icon: "wallet" },
 ];
 
-const ADMIN_ITEMS: Item[] = [
-  { href: "/admin", label: "运营后台", icon: "shield" },
-  { href: "/presets", label: "改写预设", icon: "sliders" },
-  { href: "/features", label: "规则库", icon: "list" },
-  { href: "/mining", label: "规则挖掘", icon: "list" },
-  { href: "/detector", label: "检测器反馈", icon: "list" },
-  { href: "/settings/llm", label: "LLM 设置", icon: "gear" },
+const MOBILE_ITEMS: Item[] = [
+  { href: "/dashboard", label: "总览", icon: "home" },
+  { href: "/", label: "改写", icon: "edit" },
+  { href: "/history", label: "记录", icon: "clock" },
+  { href: "/account", label: "我的", icon: "wallet" },
 ];
 
-type IconName = "edit" | "clock" | "wallet" | "shield" | "sliders" | "list" | "gear";
+const ADMIN_SECTIONS: { title: string; items: Item[] }[] = [
+  {
+    title: "运营",
+    items: [
+      { href: "/admin", label: "运营后台", icon: "shield" },
+      { href: "/detector", label: "检测器反馈", icon: "list" },
+    ],
+  },
+  {
+    title: "规则",
+    items: [
+      { href: "/features", label: "规则库", icon: "list" },
+      { href: "/mining", label: "规则挖掘", icon: "list" },
+      { href: "/presets", label: "改写预设", icon: "sliders" },
+    ],
+  },
+  {
+    title: "系统",
+    items: [{ href: "/settings/llm", label: "LLM 设置", icon: "gear" }],
+  },
+];
+
+export type IconName =
+  | "home"
+  | "edit"
+  | "clock"
+  | "wallet"
+  | "shield"
+  | "sliders"
+  | "list"
+  | "gear"
+  | "search";
 
 const ICON_PATHS: Record<IconName, string> = {
+  home: "M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10",
   edit: "M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z",
   clock: "M12 8v4l3 2M12 3a9 9 0 100 18 9 9 0 000-18z",
   wallet: "M3 7h15a3 3 0 013 3v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7zm0 0a2 2 0 012-2h11M16 13h2",
@@ -32,9 +63,10 @@ const ICON_PATHS: Record<IconName, string> = {
   sliders: "M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0M14 4v4M8 10v4M16 16v4",
   list: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   gear: "M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-2.9 1.2V21a2 2 0 11-4 0v-.1A1.7 1.7 0 005 19.4a2 2 0 11-2.8-2.8l.1-.1A1.7 1.7 0 003 13.6H3a2 2 0 110-4h.1A1.7 1.7 0 004.6 5a2 2 0 112.8-2.8l.1.1A1.7 1.7 0 0010.4 3V3a2 2 0 114 0v.1a1.7 1.7 0 002.9 1.2l.1-.1A2 2 0 1120.2 7l-.1.1a1.7 1.7 0 001.2 2.9H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z",
+  search: "M21 21l-4.3-4.3M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z",
 };
 
-function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
+export function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -80,7 +112,7 @@ export default function Sidebar() {
 
   const sections: { title: string; items: Item[] }[] = [
     { title: "工作台", items: PUBLIC_ITEMS },
-    ...(user?.is_admin ? [{ title: "管理", items: ADMIN_ITEMS }] : []),
+    ...(user?.is_admin ? ADMIN_SECTIONS : []),
   ];
 
   const renderItem = (item: Item, compact: boolean) => {
@@ -104,6 +136,26 @@ export default function Sidebar() {
 
   const accountBlock = (compact: boolean) => (
     <div className="space-y-2">
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event("open-command-palette"))}
+        title="快速跳转（Ctrl+K）"
+        className={
+          compact
+            ? "flex w-full items-center justify-center rounded-lg px-2 py-2 text-ink-500 hover:bg-ink-100"
+            : "flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm text-ink-600 hover:bg-ink-100"
+        }
+      >
+        <span className="flex items-center gap-3">
+          <Icon name="search" />
+          {!compact && <span>快速跳转</span>}
+        </span>
+        {!compact && (
+          <span className="rounded border border-ink-200 px-1.5 py-0.5 text-[10px] text-ink-400">
+            ⌘K
+          </span>
+        )}
+      </button>
       {user ? (
         <>
           {!compact && (
@@ -141,7 +193,7 @@ export default function Sidebar() {
   );
 
   const brand = (compact: boolean) => (
-    <Link href="/" className="flex items-center gap-2 px-1">
+    <Link href="/dashboard" className="flex items-center gap-2 px-1">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-600 text-sm font-semibold text-white">
         改
       </span>
@@ -252,6 +304,27 @@ export default function Sidebar() {
 
         <div className="border-t border-ink-200 pt-3">{accountBlock(collapsed)}</div>
       </aside>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-ink-200 bg-white/95 backdrop-blur md:hidden">
+        {MOBILE_ITEMS.map((item) => {
+          const active =
+            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={
+                active
+                  ? "flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium text-accent-700"
+                  : "flex flex-col items-center gap-0.5 py-2 text-[10px] text-ink-500"
+              }
+            >
+              <Icon name={item.icon} className="h-5 w-5" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
     </>
   );
 }

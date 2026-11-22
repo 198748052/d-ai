@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthProvider } from "@/components/AuthContext";
+import CommandPalette from "@/components/CommandPalette";
 import ErrorReporter from "@/components/ErrorReporter";
 import Sidebar from "@/components/Sidebar";
 import "./globals.css";
@@ -19,9 +20,10 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           <ErrorReporter />
+          <CommandPalette />
           <div className="min-h-screen md:flex">
             <Sidebar />
-            <main className="min-w-0 flex-1 px-3 py-5 sm:px-5 sm:py-6">
+            <main className="min-w-0 flex-1 px-3 pb-20 pt-5 sm:px-5 md:pb-6 md:pt-6">
               <div className="mx-auto max-w-6xl">{children}</div>
             </main>
           </div>

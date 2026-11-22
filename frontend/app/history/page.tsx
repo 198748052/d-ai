@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { apiGet, apiSend } from "@/lib/api";
 import { useAuth } from "@/components/AuthContext";
@@ -41,6 +41,8 @@ export default function HistoryPage() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const loadJobs = useCallback(async () => {
     try {
@@ -145,6 +147,15 @@ export default function HistoryPage() {
     setTimeout(() => setCopied(false), 1500);
   };
 
+  const filteredJobs = useMemo(() => {
+    const keyword = query.trim().toLowerCase();
+    return jobs.filter((job) => {
+      if (statusFilter && job.status !== statusFilter) return false;
+      if (!keyword) return true;
+      return `${job.id} ${job.original_preview}`.toLowerCase().includes(keyword);
+    });
+  }, [jobs, query, statusFilter]);
+
   return (
     <div className="space-y-5">
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
@@ -152,7 +163,7 @@ export default function HistoryPage() {
           <div>
             <h1 className="text-lg font-semibold tracking-tight text-ink-900">任务记录</h1>
             <p className="mt-1 text-sm text-ink-500">
-              所有发起过的任务都会保存在这里。进行中的任务会实时更新进度，服务重启后未完成的任务会标记为已中断。
+              所有发起过的任务都会保存在这里。进行中的任务会实时更新进度，服务重启后未完成的任务会标记为失败。
             </p>
           </div>
           <button
@@ -162,6 +173,27 @@ export default function HistoryPage() {
           >
             刷新
           </button>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="搜索任务编号或原文…"
+            className="min-w-[200px] flex-1 rounded-lg border border-ink-200 px-3 py-1.5 text-sm outline-none focus:border-accent-500"
+          />
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            className="rounded-lg border border-ink-200 bg-white px-3 py-1.5 text-sm outline-none focus:border-accent-500"
+          >
+            <option value="">全部状态</option>
+            <option value="running">进行中</option>
+            <option value="done">已完成</option>
+            <option value="error">失败</option>
+            <option value="paused">已暂停</option>
+            <option value="canceled">已取消</option>
+          </select>
+          <span className="text-xs text-ink-400">共 {filteredJobs.length} 条</span>
         </div>
       </section>
 
@@ -178,7 +210,7 @@ export default function HistoryPage() {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
         <section className="space-y-3">
-          {jobs.map((job) => {
+          {filteredJobs.map((job) => {
             const progress = job.progress_total
               ? Math.min(100, Math.round((job.progress_completed / job.progress_total) * 100))
               : 0;
@@ -271,9 +303,9 @@ export default function HistoryPage() {
               </article>
             );
           })}
-          {jobs.length === 0 && (
+          {filteredJobs.length === 0 && (
             <div className="rounded-xl border border-ink-200 bg-white p-8 text-center text-sm text-ink-400">
-              还没有任务记录
+              {jobs.length === 0 ? "还没有任务记录" : "没有匹配的任务"}
             </div>
           )}
         </section>
