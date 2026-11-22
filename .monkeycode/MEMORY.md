@@ -21,6 +21,7 @@ This file records user instructions, preferences, and project knowledge for futu
 
 ### 项目目标与迭代方向
 - Date: 2026-11-19
+- Updated: 2026-11-22
 - Context: 平台定位与后续迭代
 - Instructions:
   - 目标：降低中文学术论文的 AI 检测率，保持原意、段落数量与顺序、标题和序号不变
@@ -31,7 +32,9 @@ This file records user instructions, preferences, and project knowledge for futu
   - 本地模型：当前只做逐句困惑度诊断；下一步用低困惑度句触发定向改写，先与用户检测器的标红段落做相关性验证
   - 质量红线：数字、引用、术语、公式、标题、序号不动；改写后必须审计；异常或重复结果回退
   - 迭代方式：用户用实际检测平台复测，把标红句子发回，按具体句式补规则或调提示词
-  - 待办：GitHub 推送（需要仓库 URL）；检测器反馈闭环；低困惑度句定向改写
+  - 待办：评测基准；规则库治理；低困惑度句定向改写
+  - 暂缓：检测器反馈闭环，真实检测需要付费，当前没有预算
+  - 任务重启策略：服务重启后未完成任务直接标记失败并显示失败，不做断点续跑
 
 ### 项目运行方式
 - Date: 2026-11-19
@@ -80,7 +83,7 @@ This file records user instructions, preferences, and project knowledge for futu
   - LLM 设置：`/api/settings/llm`，当前网关 `https://wbapi.topsygf.cn/v1`，模型 `deepseek-v4.1-flash-sg`
   - API Key 用 Fernet 加密存 `data/app.db`，密钥文件 `data/secret.key`
   - 当前网关不返回 `logprobs`，无法直接用 API 算困惑度，所以用本地模型算
-  - 任务持久化在 SQLite `rewritejob` 表；服务重启会把 `running` 标记为 `interrupted`
+  - 任务持久化在 SQLite `rewritejob` 表；服务重启会把 `running`/`paused` 标记为 `error`，前端直接显示“失败”，不做断点续跑
   - SQLModel 要求时间字段带时区：必须用 `datetime.now(timezone.utc)`；`datetime.utcnow()` 会导致插入失败
   - 改写任务走 `POST /api/rewrite/jobs`，前端轮询 `GET /api/rewrite/jobs/{job_id}`
   - LLM 偶发返回空内容，已加 3 次重试；异常长度或重复结果会被清理或回退

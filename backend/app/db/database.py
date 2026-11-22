@@ -48,7 +48,8 @@ def _migrate() -> None:
             if column not in job_columns:
                 conn.exec_driver_sql(f"ALTER TABLE rewritejob ADD COLUMN {column} {ddl}")
         conn.exec_driver_sql(
-            "UPDATE rewritejob SET status='interrupted' WHERE status='running'"
+            "UPDATE rewritejob SET status='error', error='服务重启，任务已中断' "
+            "WHERE status IN ('running', 'paused', 'interrupted')"
         )
         conn.commit()
 

@@ -12,6 +12,7 @@ from ..db.database import get_session
 from ..deps import require_admin
 from ..models.models import CreditLog, ErrorLog, RedeemCode, RewriteJob, User
 from ..services.credits import grant
+from ..services.rewriter.rule_audit import audit_rules
 
 router = APIRouter(prefix="/api/admin", tags=["admin"])
 
@@ -85,6 +86,11 @@ def stats(
         "errors_24h": int(errors_24h or 0),
         "credits_total": int(credits_total or 0),
     }
+
+
+@router.get("/rules/audit")
+def rules_audit(_: User = Depends(require_admin)):
+    return audit_rules()
 
 
 @router.get("/errors")

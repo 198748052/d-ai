@@ -298,6 +298,32 @@ export interface UsageDay {
   jobs: number;
 }
 
+export interface RuleAuditVariant {
+  file: string;
+  scope: string;
+  category: string;
+  replacements: string[];
+}
+
+export interface RuleAuditItem {
+  pattern: string;
+  count: number;
+  variants: RuleAuditVariant[];
+}
+
+export interface RuleAuditReport {
+  total: number;
+  by_category: Record<string, number>;
+  by_severity: Record<string, number>;
+  by_scope: Record<string, number>;
+  duplicate_patterns: RuleAuditItem[];
+  conflicting_replacements: RuleAuditItem[];
+  invalid_regex: { file: string; pattern: string; error: string }[];
+  short_lexicon_patterns: { file: string; pattern: string; severity: string }[];
+  high_severity_without_replacement: { file: string; pattern: string }[];
+  summary: Record<string, number>;
+}
+
 export interface SentenceRewriteResult {
   original: string;
   rewritten: string;

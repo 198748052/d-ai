@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
-import type { FeatureRule } from "@/lib/types";
+import type { FeatureRule, RuleAuditReport } from "@/lib/types";
 
 interface RuleForm {
   name: string;
@@ -40,6 +40,8 @@ export default function FeaturesPage() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [audit, setAudit] = useState<RuleAuditReport | null>(null);
+  const [auditBusy, setAuditBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -54,6 +56,19 @@ export default function FeaturesPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const runAudit = async () => {
+    setAuditBusy(true);
+    setError("");
+    try {
+      const data = await apiGet<RuleAuditReport>("/api/admin/rules/audit");
+      setAudit(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "规则检查失败");
+    } finally {
+      setAuditBusy(false);
+    }
+  };
 
   const filtered = useMemo(
     () =>
@@ -228,6 +243,90 @@ export default function FeaturesPage() {
             />
           </div>
         </div>
+      </section>
+
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-ink-900">规则健康检查</h2>
+            <p className="mt-1 text-xs text-ink-500">
+              检查重复规则、冲突替换、非法正则和高危空替换，不会修改规则。
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={runAudit}
+            disabled={auditBusy}
+            className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50 disabled:opacity-60"
+          >
+            {auditBusy ? "检查中…" : "运行检查"}
+          </button>
+        </div>
+        {audit && (
+          <>
+            <div className="mt-3 flex flex-wrap gap-2 text-xs">
+              <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                总规则 <strong className="text-ink-900">{audit.total}</strong>
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 ${
+                  audit.summary.conflicting_replacements
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                冲突替换 {audit.summary.conflicting_replacements ?? 0}
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 ${
+                  audit.summary.duplicate_patterns
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                重复规则 {audit.summary.duplicate_patterns ?? 0}
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 ${
+                  audit.summary.invalid_regex
+                    ? "bg-red-50 text-red-600"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                非法正则 {audit.summary.invalid_regex ?? 0}
+              </span>
+              <span
+                className={`rounded-md px-2 py-1 ${
+                  audit.summary.high_severity_without_replacement
+                    ? "bg-amber-50 text-amber-700"
+                    : "bg-emerald-50 text-emerald-700"
+                }`}
+              >
+                高危空替换 {audit.summary.high_severity_without_replacement ?? 0}
+              </span>
+            </div>
+            {audit.conflicting_replacements.length > 0 && (
+              <details className="mt-3 text-xs">
+                <summary className="cursor-pointer text-ink-600">
+                  查看冲突明细（前 20 条）
+                </summary>
+                <ul className="mt-2 space-y-1">
+                  {audit.conflicting_replacements.slice(0, 20).map((item) => (
+                    <li
+                      key={item.pattern}
+                      className="flex items-center justify-between gap-2 rounded-md bg-ink-50 px-2 py-1"
+                    >
+                      <span className="truncate text-ink-700" title={item.pattern}>
+                        {item.pattern}
+                      </span>
+                      <span className="shrink-0 text-ink-400">{item.count} 处</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </>
+        )}
       </section>
 
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">

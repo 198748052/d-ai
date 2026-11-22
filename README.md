@@ -49,6 +49,24 @@ bash start.sh
 
 生产模式由 `scripts/serve.sh` 管理，后端 18438，前端 18437，前端把 `/api/*` 反代到后端。
 
+## 规则评测与治理
+
+规则层评测不调用 LLM，也不产生检测费用：
+
+```bash
+cd backend
+python3 -m app.services.rewriter.eval
+```
+
+规则健康检查会报告重复规则、冲突替换、非法正则和高危空替换：
+
+```bash
+cd backend
+python3 -m app.services.rewriter.rule_audit --summary
+```
+
+管理员也可以在 `/features` 页面点击“规则健康检查”查看结果。
+
 ## 测试
 
 ```bash
