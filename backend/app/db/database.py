@@ -47,6 +47,30 @@ def _migrate() -> None:
         ]:
             if column not in job_columns:
                 conn.exec_driver_sql(f"ALTER TABLE rewritejob ADD COLUMN {column} {ddl}")
+        lesson_columns = [
+            row[1] for row in conn.exec_driver_sql("PRAGMA table_info(rewritelesson)")
+        ]
+        outcome_added = "outcome" not in lesson_columns
+        for column, ddl in [
+            ("pattern", "TEXT DEFAULT ''"),
+            ("category", "VARCHAR DEFAULT 'low_perplexity'"),
+            ("outcome", "VARCHAR DEFAULT 'pending'"),
+            ("status", "VARCHAR DEFAULT 'active'"),
+            ("scope", "VARCHAR DEFAULT 'sentence'"),
+            ("strategy", "TEXT DEFAULT ''"),
+            ("last_seen_at", "DATETIME"),
+            ("source_job_id", "INTEGER"),
+        ]:
+            if column not in lesson_columns:
+                conn.exec_driver_sql(f"ALTER TABLE rewritelesson ADD COLUMN {column} {ddl}")
+        if outcome_added:
+            conn.exec_driver_sql(
+                "UPDATE rewritelesson SET outcome='survived', pattern=sentence, "
+                "category='low_perplexity', status='active', scope='sentence'"
+            )
+        conn.exec_driver_sql(
+            "UPDATE rewritelesson SET last_seen_at = updated_at WHERE last_seen_at IS NULL"
+        )
         conn.exec_driver_sql(
             "UPDATE rewritejob SET status='error', error='服务重启，任务已中断' "
             "WHERE status IN ('running', 'paused', 'interrupted')"

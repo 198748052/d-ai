@@ -311,6 +311,7 @@ async def _enforce_perplexity(
     ppl_issues: list[dict],
     audit_engine: RuleEngine,
     whitelist: Whitelist | None = None,
+    job_id: int | None = None,
 ) -> str:
     """Regenerate sentences whose local-model perplexity is too low."""
     if not ctx.use_local_model or llm is None or llm_ctx is None or len(current) < 60:
@@ -320,6 +321,35 @@ async def _enforce_perplexity(
     if not status().get("loaded"):
         return current
 
+    def mark_fixed(items: list[dict]) -> None:
+        for item in items:
+            record_lesson(
+                style=ctx.style,
+                sentence=item["sentence"],
+                original=original,
+                perplexity=item["perplexity"],
+                threshold=ctx.ppl_min,
+                outcome="fixed",
+                scope="sentence",
+                source_job_id=job_id,
+            )
+
+    def mark_survived(items: list[dict], note: str, scope: str = "sentence") -> None:
+        for item in items:
+            record_lesson(
+                style=ctx.style,
+                sentence=item["sentence"],
+                original=original,
+                perplexity=item["perplexity"],
+                threshold=ctx.ppl_min,
+                outcome="survived",
+                scope=scope,
+                source_job_id=job_id,
+                increment_hits=True,
+                note=note,
+            )
+
+    previous_low: list[dict] = []
     for attempt in range(ctx.ppl_retry + 1):
         try:
             scored = protector.restore(current, spans)
@@ -328,10 +358,28 @@ async def _enforce_perplexity(
             return current
         low = [item for item in items if item["perplexity"] < ctx.ppl_min]
         if not low:
+            mark_fixed(previous_low)
             return current
+        if attempt == 0:
+            for item in low:
+                record_lesson(
+                    style=ctx.style,
+                    sentence=item["sentence"],
+                    original=original,
+                    perplexity=item["perplexity"],
+                    threshold=ctx.ppl_min,
+                    outcome="pending",
+                    scope="sentence",
+                    source_job_id=job_id,
+                )
+        current_low = {item["sentence"] for item in low}
+        mark_fixed(
+            [item for item in previous_low if item["sentence"] not in current_low]
+        )
         if attempt >= ctx.ppl_retry:
             from ..local_model import clause_perplexities
 
+            mark_survived(low, "重写后仍低于困惑度阈值")
             for item in low:
                 targets = [item]
                 try:
@@ -350,15 +398,12 @@ async def _enforce_perplexity(
                     targets = picked[:2]
                 for target in targets:
                     severe = target["perplexity"] < ctx.ppl_severe
-                    record_lesson(
-                        style=ctx.style,
-                        sentence=target["sentence"],
-                        original=original,
-                        perplexity=target["perplexity"],
-                        threshold=ctx.ppl_min,
-                        note="严重：重写后仍远低于困惑度阈值"
+                    mark_survived(
+                        [target],
+                        "严重：重写后仍远低于困惑度阈值"
                         if severe
                         else "重写后仍低于困惑度阈值",
+                        scope="clause",
                     )
             for item in low:
                 ppl_issues.append(
@@ -378,10 +423,12 @@ async def _enforce_perplexity(
                 f"第 {index + 1} 段有 {len(low)} 句困惑度低于 {ctx.ppl_min:g}，{reason}"
             )
             return current
+        previous_low = low
         try:
             candidate = await llm.rewrite_low_perplexity(current, low, llm_ctx)
         except LLMError as exc:
             warnings.append(f"第 {index + 1} 段低困惑度重写失败：{exc}")
+            mark_survived(low, "重写失败，仍低于困惑度阈值")
             return current
         if not LLMEngine.placeholders_intact(masked, candidate):
             continue
@@ -393,6 +440,7 @@ async def _enforce_perplexity(
         ):
             continue
         current = candidate
+    mark_survived(previous_low, "重写循环结束，仍低于困惑度阈值")
     return current
 
 
@@ -454,6 +502,7 @@ async def _rewrite_one(
     pause_event: asyncio.Event | None = None,
     ppl_issues: list[dict] | None = None,
     candidate_scores: list[dict] | None = None,
+    job_id: int | None = None,
 ) -> ParagraphResult:
     async with semaphore:
         if pause_event is not None:
@@ -730,6 +779,7 @@ async def _rewrite_one(
             ppl_issues if ppl_issues is not None else [],
             audit_engine,
             ctx.whitelist,
+            job_id=job_id,
         )
 
         if llm is not None and llm_ctx is not None:
@@ -1102,6 +1152,7 @@ async def rewrite_document(
     llm: LLMEngine | None,
     emit: EmitFn | None = None,
     pause_event: asyncio.Event | None = None,
+    job_id: int | None = None,
 ) -> RewriteResponse:
     warnings: list[str] = []
     ppl_issues: list[dict] = []
@@ -1148,6 +1199,7 @@ async def rewrite_document(
                 pause_event,
                 ppl_issues,
                 candidate_scores,
+                job_id=job_id,
             )
         )
         for i, p in enumerate(paragraphs)

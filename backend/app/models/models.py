@@ -128,13 +128,21 @@ class RewriteLesson(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_seen_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     style: str = "academic"
     kind: str = "low_perplexity"  # low_perplexity
     sentence: str = ""
+    pattern: str = ""
+    category: str = "low_perplexity"  # low_perplexity | template | high_freq | hollow | register | leakage
+    outcome: str = "pending"  # pending | fixed | survived
+    status: str = "active"  # active | ignored | resolved
+    scope: str = "sentence"  # sentence | clause
+    strategy: str = ""
     original: str = ""
     perplexity: float = 0.0
     threshold: float = 0.0
     hits: int = 1
+    source_job_id: Optional[int] = None
     note: str = ""
 
 

@@ -267,13 +267,32 @@ export interface RewriteLesson {
   style: string;
   kind: string;
   sentence: string;
+  pattern: string;
+  category: string;
+  outcome: string;
+  status: string;
+  scope: string;
+  strategy: string;
   original: string;
   perplexity: number;
   threshold: number;
   hits: number;
+  source_job_id?: number | null;
   note: string;
+  last_seen_at?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface LessonStats {
+  total: number;
+  active: number;
+  ignored: number;
+  resolved: number;
+  survived: number;
+  fixed: number;
+  pending: number;
+  categories: Record<string, number>;
 }
 
 export interface User {

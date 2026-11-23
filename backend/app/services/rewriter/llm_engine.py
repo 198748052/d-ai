@@ -405,8 +405,8 @@ class LLMEngine:
         lines.extend(
             [
                 "",
-                "以下写法在以往改写中被判定为过于可预测（困惑度偏低），本次必须避免复用：",
-                *[f"- 「{item}」" for item in ctx.lessons[:8]],
+                "以下是本平台积累的高频机器化模式，本次要避开这些写法，不要原样复用，也不要只做同义替换：",
+                *[f"- {item}" for item in ctx.lessons[:10]],
             ]
         )
 

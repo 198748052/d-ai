@@ -443,7 +443,13 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
             )
 
         response = await rewrite_document(
-            req.text, ctx, rules, llm, emit, pause_event=job.pause_event
+            req.text,
+            ctx,
+            rules,
+            llm,
+            emit,
+            pause_event=job.pause_event,
+            job_id=job.db_id,
         )
         job.paragraphs = {p.index: p.model_dump() for p in response.paragraphs}
         job.completed = len(job.paragraphs)
