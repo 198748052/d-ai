@@ -113,6 +113,15 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md">
+      <div className="mb-4 flex items-center gap-2.5 px-1">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink-900 text-sm font-semibold text-white">
+          改
+        </span>
+        <div>
+          <div className="text-sm font-semibold text-ink-900">降 AI 味改写平台</div>
+          <div className="text-[11px] text-ink-400">学术论文改写</div>
+        </div>
+      </div>
       <section className="rounded-xl border border-ink-200 bg-white p-6 shadow-card">
         <div className="mb-5 flex rounded-lg bg-ink-100 p-1 text-sm">
           {(

@@ -93,54 +93,60 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-xl border border-ink-200 bg-white shadow-card">
-        <div className="bg-gradient-to-r from-accent-600 to-accent-500 px-5 py-6 text-white">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-xs text-white/70">降 AI 味改写平台</p>
-              <h1 className="mt-1 text-xl font-semibold tracking-tight">总览</h1>
-              <p className="mt-2 max-w-xl text-sm text-white/80">
-                全文逐段改写，保留原意、段落结构、数字和引用；改写后给出覆盖率、句子级规则命中和审计结果。
-              </p>
+      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent-100 bg-accent-50 px-2.5 py-1 text-[11px] font-medium text-accent-700">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent-600" />
+              降 AI 味改写平台
             </div>
-            <div className="rounded-xl bg-white/10 px-4 py-3 text-right backdrop-blur">
-              {user ? (
-                <>
-                  <div className="text-xs text-white/70">剩余额度</div>
-                  <div className="text-2xl font-semibold">{user.credits} 字</div>
-                  <Link
-                    href="/account"
-                    className="mt-1 inline-block text-xs text-white/80 hover:text-white"
-                  >
-                    查看用量 →
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <div className="text-xs text-white/70">未登录</div>
-                  <Link
-                    href="/login"
-                    className="mt-2 inline-block rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-accent-700"
-                  >
-                    登录 / 注册
-                  </Link>
-                </>
-              )}
-            </div>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-ink-900">
+              总览
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
+              全文逐段改写，保留原意、段落结构、数字和引用；改写后给出覆盖率、句子级规则命中和审计结果。
+            </p>
+          </div>
+          <div className="min-w-[180px] rounded-xl border border-ink-100 bg-ink-50 px-4 py-3 text-right">
+            {user ? (
+              <>
+                <div className="text-xs text-ink-500">剩余额度</div>
+                <div className="mt-1 text-2xl font-semibold text-ink-900">
+                  {user.credits}
+                  <span className="ml-1 text-sm font-normal text-ink-500">字</span>
+                </div>
+                <Link
+                  href="/account"
+                  className="mt-1 inline-block text-xs text-accent-700 hover:underline"
+                >
+                  查看用量 →
+                </Link>
+              </>
+            ) : (
+              <>
+                <div className="text-xs text-ink-500">未登录</div>
+                <Link
+                  href="/login"
+                  className="mt-2 inline-block rounded-lg bg-accent-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-700"
+                >
+                  登录 / 注册
+                </Link>
+              </>
+            )}
           </div>
         </div>
-        <div className="grid gap-3 px-5 py-4 sm:grid-cols-3">
-          <div className="rounded-lg bg-ink-50 px-3 py-2">
+        <div className="mt-5 grid gap-3 border-t border-ink-100 pt-4 sm:grid-cols-3">
+          <div className="rounded-lg bg-ink-50/70 px-3 py-2">
             <div className="text-xs text-ink-500">规则库</div>
             <div className="mt-1 text-lg font-semibold text-ink-900">
               {ruleCount ?? "—"} 条
             </div>
           </div>
-          <div className="rounded-lg bg-ink-50 px-3 py-2">
+          <div className="rounded-lg bg-ink-50/70 px-3 py-2">
             <div className="text-xs text-ink-500">改写策略</div>
             <div className="mt-1 text-lg font-semibold text-ink-900">全文逐句</div>
           </div>
-          <div className="rounded-lg bg-ink-50 px-3 py-2">
+          <div className="rounded-lg bg-ink-50/70 px-3 py-2">
             <div className="text-xs text-ink-500">覆盖率目标</div>
             <div className="mt-1 text-lg font-semibold text-ink-900">≥ 95%</div>
           </div>
@@ -157,7 +163,7 @@ export default function DashboardPage() {
             <Link
               key={entry.href}
               href={entry.href}
-              className="group rounded-xl border border-ink-200 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:border-accent-200"
+              className="group rounded-xl border border-ink-200 bg-white p-4 transition hover:border-accent-300 hover:bg-accent-50/30"
             >
               <div className="flex items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-50 text-accent-700">

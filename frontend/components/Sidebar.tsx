@@ -124,8 +124,8 @@ export default function Sidebar() {
         title={compact ? item.label : undefined}
         className={
           active
-            ? "flex items-center gap-3 rounded-lg bg-accent-50 px-3 py-2 text-sm font-medium text-accent-700"
-            : "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-600 hover:bg-ink-100 hover:text-ink-900"
+            ? "flex items-center gap-3 rounded-lg bg-accent-50 px-3 py-2 text-sm font-medium text-accent-700 ring-1 ring-inset ring-accent-100"
+            : "flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-ink-600 hover:bg-ink-100/70 hover:text-ink-900"
         }
       >
         <Icon name={item.icon} />
@@ -159,9 +159,9 @@ export default function Sidebar() {
       {user ? (
         <>
           {!compact && (
-            <div className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600">
+            <div className="rounded-lg border border-ink-100 bg-ink-50 px-3 py-2 text-xs text-ink-600">
               <div className="truncate text-ink-800">{user.nickname || user.email}</div>
-              <div className="mt-1 text-accent-700">余额 {user.credits} 字</div>
+              <div className="mt-1 font-medium text-accent-700">余额 {user.credits} 字</div>
             </div>
           )}
           <button
@@ -194,7 +194,7 @@ export default function Sidebar() {
 
   const brand = (compact: boolean) => (
     <Link href="/dashboard" className="flex items-center gap-2 px-1">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-600 text-sm font-semibold text-white">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink-900 text-sm font-semibold text-white">
         改
       </span>
       {!compact && (
@@ -250,7 +250,7 @@ export default function Sidebar() {
             <nav className="mt-4 flex-1 space-y-4 overflow-y-auto">
               {sections.map((section) => (
                 <div key={section.title}>
-                  <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-400">
+                  <div className="px-3 pb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-400">
                     {section.title}
                   </div>
                   <div className="space-y-1">{section.items.map((item) => renderItem(item, false))}</div>
@@ -291,7 +291,7 @@ export default function Sidebar() {
           {sections.map((section) => (
             <div key={section.title}>
               {!collapsed && (
-                <div className="px-3 pb-1 text-[11px] font-medium uppercase tracking-wide text-ink-400">
+                <div className="px-3 pb-1 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-400">
                   {section.title}
                 </div>
               )}

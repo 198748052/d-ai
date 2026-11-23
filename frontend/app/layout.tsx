@@ -23,7 +23,7 @@ export default function RootLayout({
           <CommandPalette />
           <div className="min-h-screen md:flex">
             <Sidebar />
-            <main className="min-w-0 flex-1 px-3 pb-20 pt-5 sm:px-5 md:pb-6 md:pt-6">
+            <main className="min-w-0 flex-1 px-3 pb-20 pt-5 sm:px-6 md:pb-8 md:pt-8 lg:px-8">
               <div className="mx-auto max-w-6xl">{children}</div>
             </main>
           </div>

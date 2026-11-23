@@ -12,15 +12,34 @@ body {
 }
 
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #f7f6f3;
+  color: #1c1917;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-textarea {
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+}
+
+textarea,
+input,
+select {
   font-family: inherit;
+}
+
+::selection {
+  background-color: #ccfbf1;
+  color: #115e59;
+}
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
 }
 
 ::-webkit-scrollbar {
@@ -29,13 +48,13 @@ textarea {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #d6d3d1;
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #a8a29e;
   background-clip: content-box;
 }
