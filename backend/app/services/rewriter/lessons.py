@@ -40,6 +40,26 @@ _QUOTE_RE = re.compile(r"“[^”]{1,40}”|「[^」]{1,40}」|『[^』]{1,40}�
 _LATIN_RE = re.compile(r"[A-Za-z][A-Za-z0-9_\-]{2,}")
 _WS_RE = re.compile(r"\s+")
 _SIMILARITY_THRESHOLD = 0.85
+_CONSECUTIVE_PLACEHOLDER_RE = re.compile(r"(?:\{[^}]+\}){2,}")
+
+_KEEP_WORDS = {
+    "首先", "其次", "再次", "最后", "此外", "与此同时", "综上所述", "总而言之",
+    "总的来说", "由此可见", "值得注意的是", "值得一提的是", "需要指出的是",
+    "需要强调的是", "基于此", "在此背景下", "换言之", "换句话说", "也就是说",
+    "简而言之", "一方面", "另一方面", "因此", "然而", "从而", "进而", "同时",
+    "而且", "并且", "但是", "不过", "所以", "因为", "随着", "通过", "在", "对",
+    "为", "使", "由", "从", "向", "与", "和", "及", "以及", "或", "而", "是",
+    "有", "具有", "成为", "作为", "存在", "属于", "可以", "能够", "应该", "必须",
+    "将", "会", "已经", "正在", "方面", "作用", "意义", "背景", "发展", "过程",
+    "问题", "挑战", "机遇", "影响", "关系", "机制", "路径", "模式", "体系", "能力",
+    "水平", "程度", "范围", "条件", "结果", "原因", "目标", "方法", "内容", "观点",
+    "结论", "建议", "措施", "政策", "技术", "数据", "案例", "理论", "实践", "研究",
+    "分析", "探讨", "构建", "实现", "提升", "优化", "促进", "推动", "保障", "支撑",
+    "发挥", "提供", "形成", "产生", "导致", "带来", "面临", "需要", "表明", "显示",
+    "指出", "认为", "提出", "发现", "证明", "说明", "强调", "关注", "讨论", "比较",
+    "验证", "评估", "解决", "支持", "研究显示", "数据显示", "专家指出", "学者认为",
+    "普遍认为", "值得注意", "不容忽视", "显而易见", "毋庸置疑",
+}
 
 
 def _normalize_pattern(text: str) -> str:
@@ -49,6 +69,75 @@ def _normalize_pattern(text: str) -> str:
     value = _LATIN_RE.sub("{术语}", value)
     value = _WS_RE.sub("", value)
     return value[:200]
+
+
+def extract_template(text: str) -> str:
+    """Abstract a normalized sentence into a reusable sentence template.
+
+    Content words become placeholders while connectors, prepositions and
+    structural academic phrases stay visible, e.g.
+    ``首先，值得注意的是，{内容}在{内容}方面{动词}了{数量}。``
+    """
+    pattern = text if "{" in text else _normalize_pattern(text)
+    if not pattern:
+        return ""
+    placeholders = re.findall(r"\{[^}]+\}", pattern)
+    protected = pattern
+    for index, placeholder in enumerate(placeholders):
+        protected = protected.replace(placeholder, f"ZZPH{index}ZZ", 1)
+    try:
+        import jieba.posseg as pseg
+
+        tokens = list(pseg.cut(protected))
+    except Exception:  # noqa: BLE001
+        return pattern[:120]
+
+    parts: list[str] = []
+    for word, flag in tokens:
+        if not word.strip():
+            continue
+        sentinel = re.fullmatch(r"ZZPH(\d+)ZZ", word)
+        if sentinel:
+            mapped = placeholders[int(sentinel.group(1))]
+            if mapped == "{数字}":
+                mapped = "{数量}"
+            elif mapped == "{日期}":
+                mapped = "{时间}"
+        elif word in _KEEP_WORDS:
+            mapped = word
+        elif flag.startswith(("x", "w", "u", "c", "d", "p", "f")):
+            mapped = word
+        elif flag.startswith(("m", "q")):
+            mapped = "{数量}"
+        elif flag.startswith("t"):
+            mapped = "{时间}"
+        elif flag.startswith("n"):
+            mapped = "{名词}"
+        elif flag.startswith("v"):
+            mapped = "{动词}"
+        elif flag.startswith("a"):
+            mapped = "{形容词}"
+        elif flag.startswith("r"):
+            mapped = "{指代}"
+        elif flag == "eng":
+            mapped = "{术语}"
+        else:
+            mapped = "{内容}"
+        if parts and mapped == parts[-1]:
+            continue
+        parts.append(mapped)
+
+    template = "".join(parts)
+    template = re.sub(r"\[\{数量\}\]", "", template)
+    template = re.sub(r"[（(]\{数量\}[）)]", "", template)
+    template = _CONSECUTIVE_PLACEHOLDER_RE.sub("{内容}", template)
+    template = re.sub(r"[，,]{2,}", "，", template)
+    template = re.sub(r"^[，,、；;：:]+|[，,、；;：:]+$", "", template).strip()
+    if not template:
+        return pattern[:120]
+    if "{" not in template:
+        template = pattern
+    return template[:120]
 
 
 def _similarity(left: str, right: str) -> float:
@@ -72,6 +161,7 @@ def _find_existing(
     session: Session,
     style: str,
     pattern: str,
+    template: str,
     sentence: str,
 ) -> RewriteLesson | None:
     row = session.exec(
@@ -93,6 +183,17 @@ def _find_existing(
         ).first()
         if row is not None:
             return row
+    if template:
+        row = session.exec(
+            select(RewriteLesson)
+            .where(
+                RewriteLesson.style == style,
+                RewriteLesson.template == template,
+            )
+            .order_by(RewriteLesson.hits.desc())
+        ).first()
+        if row is not None:
+            return row
     candidates = session.exec(
         select(RewriteLesson)
         .where(RewriteLesson.style == style)
@@ -101,8 +202,10 @@ def _find_existing(
     ).all()
     best: RewriteLesson | None = None
     best_score = 0.0
+    left = template or pattern or sentence
     for candidate in candidates:
-        score = _similarity(pattern or sentence, candidate.pattern or candidate.sentence)
+        right = candidate.template or candidate.pattern or candidate.sentence
+        score = _similarity(left, right)
         if score >= _SIMILARITY_THRESHOLD and score > best_score:
             best = candidate
             best_score = score
@@ -131,12 +234,13 @@ def record_lesson(
     # 纯引用、纯数字或信息量过低的片段不适合作为避雷模式。
     if len(re.findall(r"[\u4e00-\u9fff]", pattern)) < 8:
         return
+    template = extract_template(pattern)
     resolved_category = category or _classify(text, style)
     resolved_strategy = strategy or DEFAULT_STRATEGIES.get(resolved_category, "")
     now = datetime.now(timezone.utc)
     try:
         with Session(engine) as session:
-            row = _find_existing(session, style, pattern, text)
+            row = _find_existing(session, style, pattern, template, text)
             if row is not None:
                 old_job = row.source_job_id
                 if increment_hits and (source_job_id is None or old_job != source_job_id):
@@ -158,6 +262,7 @@ def record_lesson(
                 if source_job_id is not None:
                     row.source_job_id = source_job_id
                 row.pattern = row.pattern or pattern
+                row.template = row.template or template
                 if resolved_category and (
                     not row.category or row.category == "low_perplexity"
                 ):
@@ -173,6 +278,7 @@ def record_lesson(
                         kind="low_perplexity",
                         sentence=text,
                         pattern=pattern,
+                        template=template,
                         category=resolved_category,
                         outcome=outcome,
                         status="active",
@@ -192,11 +298,38 @@ def record_lesson(
         pass
 
 
+def backfill_templates() -> int:
+    """Generate templates for legacy rows that only have pattern/sentence."""
+    with Session(engine) as session:
+        rows = session.exec(select(RewriteLesson)).all()
+        updated = 0
+        for row in rows:
+            source = row.pattern or row.sentence
+            if not source:
+                continue
+            if row.template and row.template not in {row.pattern, row.sentence}:
+                continue
+            template = extract_template(source)
+            if template and template != row.template:
+                row.template = template
+                row.updated_at = datetime.now(timezone.utc)
+                session.add(row)
+                updated += 1
+        if updated:
+            session.commit()
+        return updated
+
+
 def _format_hint(row: RewriteLesson) -> str:
     label = CATEGORY_LABELS.get(row.category, row.category or "低困惑度")
-    pattern = (row.pattern or row.sentence or "").strip()[:90]
+    pattern = (row.template or row.pattern or row.sentence or "").strip()[:90]
     strategy = (row.strategy or DEFAULT_STRATEGIES.get(row.category, "")).strip()
     return f"[{label}] {pattern}" + (f" → {strategy}" if strategy else "")
+
+
+def _is_useful(row: RewriteLesson) -> bool:
+    text = row.template or row.pattern or row.sentence
+    return len(re.findall(r"[\u4e00-\u9fff]", text or "")) >= 8
 
 
 def recent_lessons(style: str, limit: int = 10) -> list[str]:
@@ -228,7 +361,11 @@ def recent_lessons(style: str, limit: int = 10) -> list[str]:
                 rows.extend(fixed)
     except Exception:  # noqa: BLE001
         return []
-    return [_format_hint(row) for row in rows if row.sentence or row.pattern]
+    return [
+        _format_hint(row)
+        for row in rows
+        if (row.sentence or row.pattern) and _is_useful(row)
+    ]
 
 
 def list_lessons(

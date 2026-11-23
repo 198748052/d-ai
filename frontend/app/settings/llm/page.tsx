@@ -629,11 +629,15 @@ export default function LLMSettingsPage() {
                     )}
                   </div>
                   <div className="mt-1 text-sm text-ink-800">
-                    {item.pattern || item.sentence}
+                    {item.template || item.pattern || item.sentence}
                   </div>
-                  {item.pattern && item.pattern !== item.sentence && (
-                    <div className="mt-1 text-xs text-ink-400">原句：{item.sentence}</div>
+                  {item.template && item.pattern && item.template !== item.pattern && (
+                    <div className="mt-1 text-xs text-ink-400">骨架：{item.pattern}</div>
                   )}
+                  {item.sentence &&
+                    item.sentence !== (item.template || item.pattern) && (
+                      <div className="mt-1 text-xs text-ink-400">原句：{item.sentence}</div>
+                    )}
                   {item.strategy && (
                     <div className="mt-1 text-xs text-accent-700">
                       策略：{item.strategy}

@@ -268,6 +268,7 @@ export interface RewriteLesson {
   kind: string;
   sentence: string;
   pattern: string;
+  template: string;
   category: string;
   outcome: string;
   status: string;

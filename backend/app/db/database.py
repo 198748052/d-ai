@@ -51,8 +51,10 @@ def _migrate() -> None:
             row[1] for row in conn.exec_driver_sql("PRAGMA table_info(rewritelesson)")
         ]
         outcome_added = "outcome" not in lesson_columns
+        template_added = "template" not in lesson_columns
         for column, ddl in [
             ("pattern", "TEXT DEFAULT ''"),
+            ("template", "TEXT DEFAULT ''"),
             ("category", "VARCHAR DEFAULT 'low_perplexity'"),
             ("outcome", "VARCHAR DEFAULT 'pending'"),
             ("status", "VARCHAR DEFAULT 'active'"),
@@ -66,7 +68,13 @@ def _migrate() -> None:
         if outcome_added:
             conn.exec_driver_sql(
                 "UPDATE rewritelesson SET outcome='survived', pattern=sentence, "
-                "category='low_perplexity', status='active', scope='sentence'"
+                "template=sentence, category='low_perplexity', status='active', "
+                "scope='sentence'"
+            )
+        elif template_added:
+            conn.exec_driver_sql(
+                "UPDATE rewritelesson SET template=pattern "
+                "WHERE template IS NULL OR template = ''"
             )
         conn.exec_driver_sql(
             "UPDATE rewritelesson SET last_seen_at = updated_at WHERE last_seen_at IS NULL"

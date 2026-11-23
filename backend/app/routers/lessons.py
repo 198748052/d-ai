@@ -24,6 +24,7 @@ def _serialize(row: RewriteLesson) -> dict:
         "kind": row.kind,
         "sentence": row.sentence,
         "pattern": row.pattern,
+        "template": row.template,
         "category": row.category,
         "outcome": row.outcome,
         "status": row.status,

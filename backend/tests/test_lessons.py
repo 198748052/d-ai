@@ -9,6 +9,7 @@ from app.services.protector import Protector
 from app.services.rewriter.context_guard import load_whitelist
 from app.services.rewriter.lessons import (
     _normalize_pattern,
+    extract_template,
     lesson_stats,
     list_lessons,
     recent_lessons,
@@ -42,6 +43,16 @@ class LessonLibraryTest(unittest.TestCase):
         self.assertIn("{数字}", pattern)
         self.assertIn("{引文}", pattern)
 
+    def test_template_extraction_abstracts_content(self) -> None:
+        template = extract_template(
+            "首先，值得注意的是，2024年ABC公司在5个城市增长了12.5%。"
+        )
+        self.assertIn("首先", template)
+        self.assertIn("值得注意", template)
+        self.assertIn("{", template)
+        self.assertNotIn("2024", template)
+        self.assertNotIn("ABC", template)
+
     def test_pending_is_not_injected_and_survived_counts_once_per_job(self) -> None:
         sentence = "首先，值得注意的是，本文在多个方面具有十分重要的意义。"
         record_lesson(
@@ -62,6 +73,7 @@ class LessonLibraryTest(unittest.TestCase):
         hints = recent_lessons("academic")
         self.assertEqual(len(hints), 1)
         self.assertTrue(hints[0].startswith("["))
+        self.assertTrue(list_lessons(style="academic")[0].template)
 
         record_lesson(
             style="academic",

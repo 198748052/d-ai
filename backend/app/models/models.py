@@ -133,6 +133,7 @@ class RewriteLesson(SQLModel, table=True):
     kind: str = "low_perplexity"  # low_perplexity
     sentence: str = ""
     pattern: str = ""
+    template: str = ""
     category: str = "low_perplexity"  # low_perplexity | template | high_freq | hollow | register | leakage
     outcome: str = "pending"  # pending | fixed | survived
     status: str = "active"  # active | ignored | resolved
