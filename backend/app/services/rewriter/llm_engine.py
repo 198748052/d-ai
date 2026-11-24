@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import time
 from dataclasses import dataclass
 
 import httpx
@@ -10,6 +11,7 @@ import httpx
 from ...core.crypto import decrypt
 from ...models.models import LLMSetting
 from .content import fact_lines
+from .timing import add_llm
 
 _PREFIX_RE = re.compile(r"^\s*(改写后|改写结果|润色后|输出)[:：]\s*")
 _QUOTE_PAIRS = [("“", "”"), ('"', '"'), ("「", "」"), ("『", "』")]
@@ -103,6 +105,24 @@ class LLMEngine:
         return bool(self.api_key and self.base_url and self.model)
 
     async def _chat(
+        self,
+        messages: list[dict],
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        reasoning_effort: str | None = None,
+    ) -> str:
+        started = time.perf_counter()
+        try:
+            return await self._chat_impl(
+                messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                reasoning_effort=reasoning_effort,
+            )
+        finally:
+            add_llm(time.perf_counter() - started)
+
+    async def _chat_impl(
         self,
         messages: list[dict],
         temperature: float | None = None,

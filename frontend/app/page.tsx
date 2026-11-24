@@ -17,6 +17,7 @@ import type {
   Preset,
   RewriteJobStatus,
   RewriteStats,
+  RewriteTiming,
   SentenceRewriteResult,
 } from "@/lib/types";
 
@@ -60,6 +61,7 @@ export default function WorkspacePage() {
   const [running, setRunning] = useState(false);
   const [paragraphs, setParagraphs] = useState<ParagraphResult[]>([]);
   const [stats, setStats] = useState<RewriteStats | null>(null);
+  const [timing, setTiming] = useState<RewriteTiming | null>(null);
   const [audit, setAudit] = useState<AuditResult | null>(null);
   const [rewrittenText, setRewrittenText] = useState("");
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -229,6 +231,7 @@ export default function WorkspacePage() {
     setPplIssues([]);
     setParagraphs([]);
     setStats(null);
+    setTiming(null);
     setAudit(null);
     setRewrittenText("");
     setContentReport(null);
@@ -272,6 +275,7 @@ export default function WorkspacePage() {
 
         if (job.status === "done") {
           setStats(job.stats);
+          setTiming(job.timing ?? null);
           setAudit(job.audit ?? null);
           setContentReport(job.content_report ?? null);
           setStructureChanges(job.structure_changes ?? []);
@@ -683,6 +687,28 @@ export default function WorkspacePage() {
               ))}
             </div>
           </div>
+          {timing && (
+            <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-100 pt-3 text-xs text-ink-500">
+              <span>
+                总耗时{" "}
+                <strong className="text-ink-900">{timing.total_seconds.toFixed(1)}s</strong>
+              </span>
+              <span>
+                LLM {timing.llm_calls} 次 /{" "}
+                <strong className="text-ink-900">{timing.llm_seconds.toFixed(1)}s</strong>
+              </span>
+              <span>
+                PPL {timing.ppl_calls} 次 /{" "}
+                <strong className="text-ink-900">{timing.ppl_seconds.toFixed(1)}s</strong>
+              </span>
+              <span>
+                规则{" "}
+                <strong className="text-ink-900">{timing.rule_seconds.toFixed(1)}s</strong>
+              </span>
+              <span>节奏调整 {timing.rhythm_calls} 次</span>
+              <span>覆盖率补写 {timing.coverage_passes} 次</span>
+            </div>
+          )}
         </section>
       )}
 

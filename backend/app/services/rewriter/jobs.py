@@ -20,6 +20,7 @@ class Job:
     content_report: dict | None = None
     structure_changes: list[str] = field(default_factory=list)
     candidate_scores: list[dict] = field(default_factory=list)
+    timing: dict | None = None
     error: str | None = None
     created_at: float = field(default_factory=time.time)
     finished_at: float | None = None

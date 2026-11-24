@@ -4,6 +4,7 @@ import asyncio
 import difflib
 import json
 import re
+import time
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 
@@ -43,6 +44,13 @@ from .lessons import (
     record_lesson,
 )
 from .structure import restructure
+from .timing import (
+    add_coverage,
+    add_rhythm,
+    add_rule,
+    finish_timing,
+    start_timing,
+)
 from .llm_engine import LLMContext, LLMEngine, LLMError
 from .rule_engine import RewriteOptions, Rule, RuleEngine
 
@@ -470,6 +478,7 @@ async def _ensure_coverage(
         untouched = _untouched_sentences(masked_source, current)
         if not untouched:
             return current
+        add_coverage()
         try:
             candidate = await llm.rewrite_unchanged(
                 current, untouched, llm_ctx, context=masked_source
@@ -548,7 +557,9 @@ async def _rewrite_one(
         )
 
         if ctx.use_rule_engine and ctx.mode in {"rule", "hybrid"}:
+            rule_started = time.perf_counter()
             current = await asyncio.to_thread(engine.rewrite, current, options)
+            add_rule(time.perf_counter() - rule_started)
 
         llm_used = False
         llm_ctx = None
@@ -718,6 +729,7 @@ async def _rewrite_one(
                     if metrics.get("cv", 0) >= 0.7 and not runs and not issues:
                         break
                     try:
+                        add_rhythm()
                         candidate = await llm.adjust_rhythm(current, metrics, llm_ctx, issues)
                     except LLMError as exc:
                         warnings.append(f"第 {index + 1} 段节奏调整失败：{exc}")
@@ -770,7 +782,9 @@ async def _rewrite_one(
             )
 
         if ctx.use_rule_engine and ctx.mode == "hybrid":
+            audit_started = time.perf_counter()
             current = await asyncio.to_thread(engine.audit, current, options)
+            add_rule(time.perf_counter() - audit_started)
 
         current = await _enforce_perplexity(
             index,
@@ -998,9 +1012,11 @@ async def _rewrite_document_level(
         if _is_heading(paragraph) and not ctx.rewrite_headings:
             rewritten_paragraphs.append(paragraph)
         else:
+            rule_started = time.perf_counter()
             rewritten_paragraphs.append(
                 await asyncio.to_thread(engine.rewrite, paragraph, options)
             )
+            add_rule(time.perf_counter() - rule_started)
     masked_document = "\n\n".join(rewritten_paragraphs)
     hits = collect_hits(masked_document, engine, whitelist=ctx.whitelist, limit=40)
     llm_ctx = LLMContext(
@@ -1174,10 +1190,16 @@ async def rewrite_document(
     pause_event: asyncio.Event | None = None,
     job_id: int | None = None,
 ) -> RewriteResponse:
+    timing = start_timing()
+    started = time.perf_counter()
     warnings: list[str] = []
     ppl_issues: list[dict] = []
     if ctx.use_llm and (llm is None or not llm.configured):
         raise LLMError("改写需要规则 + LLM 混合执行，请先在 LLM 设置页配置 Base URL、模型和 API Key")
+
+    def finish(response: RewriteResponse) -> RewriteResponse:
+        response.timing = finish_timing(timing, started)
+        return response
 
     # Stage 4 前置：先把过程痕迹清掉，避免被当成正文改写或计费。
     cleaned_text, doc_leaks = clean_leakage(text)
@@ -1190,7 +1212,9 @@ async def rewrite_document(
 
     paragraphs = split_paragraphs(cleaned_text)
     if not paragraphs:
-        return _build_response([], warnings or ["没有解析到任何段落，请检查输入内容"])
+        return finish(
+            _build_response([], warnings or ["没有解析到任何段落，请检查输入内容"])
+        )
 
     ctx.facts_by_paragraph = assign_facts(ctx.content_facts, paragraphs)
     candidate_scores: list[dict] = []
@@ -1200,8 +1224,10 @@ async def rewrite_document(
             cleaned_text, paragraphs, ctx, rules, llm, warnings
         )
         if document_results is not None:
-            return await _finalize_response(
-                document_results, warnings, ppl_issues, [], ctx, rules, cleaned_text
+            return finish(
+                await _finalize_response(
+                    document_results, warnings, ppl_issues, [], ctx, rules, cleaned_text
+                )
             )
         warnings.append("文档级改写未成功，已回退到混合粒度")
 
@@ -1233,6 +1259,8 @@ async def rewrite_document(
             await emit(result)
 
     ordered = [r for r in results if r is not None]
-    return await _finalize_response(
-        ordered, warnings, ppl_issues, candidate_scores, ctx, rules, cleaned_text
+    return finish(
+        await _finalize_response(
+            ordered, warnings, ppl_issues, candidate_scores, ctx, rules, cleaned_text
+        )
     )

@@ -104,6 +104,7 @@ def _save_job(
                             ),
                             "structure_changes": response.structure_changes,
                             "candidate_scores": response.candidate_scores,
+                            "timing": response.timing,
                         },
                         ensure_ascii=False,
                     ),
@@ -462,6 +463,7 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
         )
         job.structure_changes = list(response.structure_changes)
         job.candidate_scores = list(response.candidate_scores)
+        job.timing = response.timing
         job.status = "done"
         payload = {
             "paragraphs": [p.model_dump() for p in response.paragraphs],
@@ -474,6 +476,7 @@ async def _run_job(job, req: RewriteRequest, ctx, rules, llm) -> None:
             ),
             "structure_changes": response.structure_changes,
             "candidate_scores": response.candidate_scores,
+            "timing": response.timing,
         }
         _update_job_db(
             job.db_id,
@@ -556,6 +559,7 @@ def get_rewrite_job(
         "content_report": job.content_report,
         "structure_changes": job.structure_changes,
         "candidate_scores": job.candidate_scores,
+        "timing": job.timing,
         "error": job.error,
     }
 

@@ -92,6 +92,9 @@ class FullCoverageRewriteTest(unittest.IsolatedAsyncioTestCase):
         response = await rewrite_document(text, self._context(), [], NoopParagraphLLM())
         self.assertEqual(response.stats.sentences, 4)
         self.assertGreaterEqual(response.stats.coverage, 0.9)
+        self.assertIn("total_seconds", response.timing)
+        self.assertIn("llm_calls", response.timing)
+        self.assertGreaterEqual(response.timing["total_seconds"], 0.0)
         self.assertNotIn("本文围绕A对B的影响展开研究", response.rewritten_text)
         self.assertNotIn("结果具有一定的参考价值", response.rewritten_text)
 

@@ -5,7 +5,10 @@ import math
 import re
 import os
 import threading
+import time
 from pathlib import Path
+
+from .rewriter.timing import add_ppl
 
 os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
 
@@ -179,6 +182,14 @@ def unload_model() -> None:
 
 
 def _score(texts: list[str]) -> list[dict]:
+    started = time.perf_counter()
+    try:
+        return _score_impl(texts)
+    finally:
+        add_ppl(time.perf_counter() - started)
+
+
+def _score_impl(texts: list[str]) -> list[dict]:
     if _model is None or _tokenizer is None:
         raise RuntimeError("本地模型尚未加载")
 

@@ -38,6 +38,17 @@ export interface RewriteStats {
   coverage?: number;
 }
 
+export interface RewriteTiming {
+  total_seconds: number;
+  llm_calls: number;
+  llm_seconds: number;
+  ppl_calls: number;
+  ppl_seconds: number;
+  rule_seconds: number;
+  rhythm_calls: number;
+  coverage_passes: number;
+}
+
 export interface AuditItem {
   category: string;
   pattern: string;
@@ -167,6 +178,7 @@ export interface RewriteResponse {
   content_report?: ContentReport | null;
   structure_changes?: string[];
   candidate_scores?: CandidateScore[];
+  timing?: RewriteTiming;
 }
 
 export interface RewriteJobStatus {
@@ -182,6 +194,7 @@ export interface RewriteJobStatus {
   content_report?: ContentReport | null;
   structure_changes?: string[];
   candidate_scores?: CandidateScore[];
+  timing?: RewriteTiming | null;
   error: string | null;
 }
 
@@ -501,6 +514,7 @@ export interface JobResult {
   content_report?: ContentReport | null;
   structure_changes?: string[];
   candidate_scores?: CandidateScore[];
+  timing?: RewriteTiming;
 }
 
 export interface JobDetail extends JobSummary {

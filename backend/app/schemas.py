@@ -124,6 +124,7 @@ class RewriteResponse(BaseModel):
     content_report: Optional[ContentReport] = None
     structure_changes: list[str] = Field(default_factory=list)
     candidate_scores: list[dict] = Field(default_factory=list)
+    timing: dict = Field(default_factory=dict)
 
 
 class SentenceRewriteRequest(BaseModel):

@@ -343,6 +343,30 @@ export default function HistoryPage() {
               <p className="text-xs text-ink-400">
                 创建 {formatTime(detail.created_at)} · 更新 {formatTime(detail.updated_at)}
               </p>
+              {detail.result?.timing && (
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                    总耗时{" "}
+                    <strong className="text-ink-900">
+                      {detail.result.timing.total_seconds.toFixed(1)}s
+                    </strong>
+                  </span>
+                  <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                    LLM{" "}
+                    <strong className="text-ink-900">
+                      {detail.result.timing.llm_calls} 次 /{" "}
+                      {detail.result.timing.llm_seconds.toFixed(1)}s
+                    </strong>
+                  </span>
+                  <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-600">
+                    PPL{" "}
+                    <strong className="text-ink-900">
+                      {detail.result.timing.ppl_calls} 次 /{" "}
+                      {detail.result.timing.ppl_seconds.toFixed(1)}s
+                    </strong>
+                  </span>
+                </div>
+              )}
               {detail.error && (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
                   {detail.error}
