@@ -322,8 +322,31 @@ export default function LLMSettingsPage() {
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
-        <div className="grid gap-4 md:grid-cols-2">
+      <nav className="flex gap-2 overflow-x-auto rounded-xl border border-ink-200 bg-white p-2 shadow-card">
+        {[
+          ["model", "模型配置"],
+          ["local", "本地模型"],
+          ["lessons", "避雷库"],
+        ].map(([id, label]) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50 hover:text-ink-900"
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      <section
+        id="model"
+        className="scroll-mt-20 rounded-xl border border-ink-200 bg-white p-5 shadow-card"
+      >
+        <h2 className="text-sm font-semibold text-ink-900">模型配置</h2>
+        <p className="mt-1 text-xs text-ink-500">
+          填写 OpenAI 兼容网关地址、模型名和 API Key。Key 只在服务端加密保存。
+        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
             <label className="mb-1 block text-xs font-medium text-ink-500">提供商</label>
             <select
@@ -447,7 +470,10 @@ export default function LLMSettingsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+      <section
+        id="local"
+        className="scroll-mt-20 rounded-xl border border-ink-200 bg-white p-5 shadow-card"
+      >
         <h2 className="text-sm font-semibold text-ink-900">本地模型评分（调试）</h2>
         <p className="mt-1 text-sm text-ink-500">
           用于计算逐句困惑度，辅助判断词级可预测性。模型从 hf-mirror 下载，启用后会增加改写耗时。
@@ -519,7 +545,10 @@ export default function LLMSettingsPage() {
         </p>
       </section>
 
-      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+      <section
+        id="lessons"
+        className="scroll-mt-20 rounded-xl border border-ink-200 bg-white p-5 shadow-card"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-ink-900">避雷库</h2>

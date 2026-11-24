@@ -373,136 +373,162 @@ export default function WorkspacePage() {
       </section>
 
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
-        <div className="mb-2 flex items-center justify-between">
-          <label className="text-sm font-medium text-ink-800">原文</label>
-          <div className="flex items-center gap-3 text-sm">
-            <button
-              type="button"
-              onClick={() => setText(SAMPLE)}
-              className="text-ink-500 hover:text-ink-800"
-            >
-              填入示例
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setText("");
-                setDraftSavedAt("");
-                try {
-                  localStorage.removeItem("rewrite-draft");
-                } catch {
-                  // ignore
-                }
-              }}
-              className="text-ink-500 hover:text-ink-800"
-            >
-              清空
-            </button>
-            <span className={text.length > 30000 ? "text-red-500" : "text-ink-400"}>
-              {text.length} / 30000 字
-            </span>
-            {draftSavedAt && (
-              <span className="text-xs text-ink-400">草稿已保存 {draftSavedAt}</span>
-            )}
-          </div>
-        </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="把需要改写的论文段落粘贴到这里，段落之间用空行分隔。"
-          className="h-56 w-full resize-y rounded-lg border border-ink-200 bg-ink-50/40 p-3 text-sm leading-7 text-ink-800 outline-none transition focus:border-accent-500 focus:bg-white focus:ring-2 focus:ring-accent-100"
-        />
-
-        <div className="mt-3 rounded-lg border border-accent-100 bg-accent-50/60 px-3 py-2 text-xs text-accent-700">
-          学术模式：口语化已关闭。流程为「内容缺口扫描 → 规则库删除/替换 → 全文逐段 LLM 改写 → 覆盖率补写 → 复检与结构复核 → 特征审计」。
-        </div>
-
-        <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-500">
-          <span className="rounded-md bg-ink-100 px-2 py-1">
-            稳定模式：单候选 · 保留段落 · 关闭深度改写
-          </span>
-          <label className="flex items-center gap-1.5">
-            改写粒度
-            <select
-              value={rewriteGranularity}
-              onChange={(e) =>
-                setRewriteGranularity(e.target.value === "document" ? "document" : "hybrid")
-              }
-              className="rounded-md border border-ink-200 bg-white px-2 py-1"
-            >
-              <option value="hybrid">混合（句 + 段，默认）</option>
-              <option value="document">文档级</option>
-            </select>
-          </label>
-          <label className="flex items-center gap-1.5">
-            <input
-              type="checkbox"
-              checked={rewriteHeadings}
-              onChange={(e) => setRewriteHeadings(e.target.checked)}
-              className="h-3.5 w-3.5"
-            />
-            连标题一起改写
-          </label>
-          {contentFacts.length > 0 && (
-            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
-              已补充 {contentFacts.length} 条事实
-            </span>
-          )}
-        </div>
-        {rewriteGranularity === "document" && (
-          <p className="mt-2 text-[11px] text-ink-400">
-            文档级适合 8000 字以内的文本；段落数不一致时会自动回退混合模式。
-          </p>
-        )}
-
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleRewrite}
-            disabled={running}
-            className="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {running ? "改写中…" : "开始改写"}
-          </button>
-          <button
-            type="button"
-            onClick={handleClarify}
-            disabled={running || clarifyLoading}
-            className="rounded-lg border border-accent-200 px-3 py-2 text-sm text-accent-700 hover:bg-accent-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {clarifyLoading ? "扫描中…" : "扫描内容缺口"}
-          </button>
-          {running && (
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="rounded-lg border border-ink-200 px-3 py-2 text-sm text-ink-600 hover:bg-ink-50"
-            >
-              取消任务
-            </button>
-          )}
-          {running && (
-            <span className="text-sm text-ink-500">
-              已处理 {doneCount}/{total || "?"} 段
-            </span>
-          )}
-          {user ? (
-            <span className="text-xs text-ink-500">
-              本次预计消耗 {text.replace(/\s/g, "").length} 字 · 余额 {user.credits} 字
-            </span>
-          ) : (
-            <Link href="/login" className="text-xs text-accent-700 hover:underline">
-              登录后可提交改写
-            </Link>
-          )}
-          {running && (
-            <div className="h-1.5 w-40 overflow-hidden rounded-full bg-ink-100">
-              <div
-                className="h-full rounded-full bg-accent-500 transition-all"
-                style={{ width: `${progress}%` }}
-              />
+        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="min-w-0">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <label className="text-sm font-medium text-ink-800">原文</label>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-500">
+                <button
+                  type="button"
+                  onClick={() => setText(SAMPLE)}
+                  className="hover:text-ink-800"
+                >
+                  填入示例
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setText("");
+                    setDraftSavedAt("");
+                    try {
+                      localStorage.removeItem("rewrite-draft");
+                    } catch {
+                      // ignore
+                    }
+                  }}
+                  className="hover:text-ink-800"
+                >
+                  清空
+                </button>
+                <span className={text.length > 30000 ? "text-red-500" : "text-ink-400"}>
+                  {text.length} / 30000 字
+                </span>
+                {draftSavedAt && <span>草稿已保存 {draftSavedAt}</span>}
+              </div>
             </div>
-          )}
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="把需要改写的论文段落粘贴到这里，段落之间用空行分隔。"
+              className="h-64 w-full resize-y rounded-lg border border-ink-200 bg-ink-50/40 p-3 text-sm leading-7 text-ink-800 outline-none transition focus:border-accent-500 focus:bg-white focus:ring-2 focus:ring-accent-100"
+            />
+            <div className="mt-3 rounded-lg border border-accent-100 bg-accent-50/50 px-3 py-2 text-xs leading-5 text-accent-700">
+              学术模式：口语化已关闭。流程为「内容缺口扫描 → 规则库删除/替换 → 全文逐段 LLM 改写 → 覆盖率补写 → 复检与结构复核 → 特征审计」。
+            </div>
+          </div>
+
+          <aside className="rounded-lg border border-ink-100 bg-ink-50/60 p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold text-ink-900">改写设置</h2>
+              <span className="rounded-full border border-accent-100 bg-white px-2 py-0.5 text-[10px] text-accent-700">
+                稳定模式
+              </span>
+            </div>
+            <p className="mt-1 text-xs leading-5 text-ink-500">
+              单候选、保留段落、关闭深度改写。调整粒度和标题策略后直接开始。
+            </p>
+
+            <div className="mt-3 space-y-3">
+              <label className="block text-xs font-medium text-ink-600">
+                改写粒度
+                <select
+                  value={rewriteGranularity}
+                  onChange={(e) =>
+                    setRewriteGranularity(
+                      e.target.value === "document" ? "document" : "hybrid"
+                    )
+                  }
+                  className="mt-1 w-full rounded-lg border border-ink-200 bg-white px-2 py-1.5 text-sm outline-none focus:border-accent-500"
+                >
+                  <option value="hybrid">混合（句 + 段，默认）</option>
+                  <option value="document">文档级</option>
+                </select>
+              </label>
+              {rewriteGranularity === "document" && (
+                <p className="text-[11px] leading-5 text-ink-400">
+                  文档级适合 8000 字以内；段落数不一致时会自动回退混合模式。
+                </p>
+              )}
+
+              <label className="flex items-start gap-2 text-xs text-ink-600">
+                <input
+                  type="checkbox"
+                  checked={rewriteHeadings}
+                  onChange={(e) => setRewriteHeadings(e.target.checked)}
+                  className="mt-0.5 h-3.5 w-3.5"
+                />
+                <span>
+                  连标题一起改写
+                  <span className="ml-1 text-ink-400">（默认只改正文）</span>
+                </span>
+              </label>
+
+              <div className="rounded-lg border border-ink-100 bg-white px-3 py-2 text-xs text-ink-500">
+                <div className="flex items-center justify-between gap-2">
+                  <span>补充事实</span>
+                  <span className="font-medium text-ink-800">{contentFacts.length} 条</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleClarify}
+                  disabled={running || clarifyLoading}
+                  className="mt-2 w-full rounded-lg border border-accent-200 px-3 py-1.5 text-xs text-accent-700 hover:bg-accent-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {clarifyLoading ? "扫描中…" : "扫描内容缺口"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRewrite}
+                disabled={running}
+                className="w-full rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {running ? "改写中…" : "开始改写"}
+              </button>
+              {running && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="w-full rounded-lg border border-ink-200 px-3 py-1.5 text-xs text-ink-600 hover:bg-ink-50"
+                >
+                  取消任务
+                </button>
+              )}
+              {running && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px] text-ink-500">
+                    <span>进度</span>
+                    <span>
+                      {doneCount}/{total || "?"} 段
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-200">
+                    <div
+                      className="h-full rounded-full bg-accent-500 transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-ink-200 pt-3 text-xs text-ink-500">
+                {user ? (
+                  <>
+                    本次预计消耗{" "}
+                    <strong className="text-ink-800">
+                      {text.replace(/\s/g, "").length}
+                    </strong>{" "}
+                    字 · 余额 <strong className="text-ink-800">{user.credits}</strong> 字
+                  </>
+                ) : (
+                  <Link href="/login" className="text-accent-700 hover:underline">
+                    登录后可提交改写
+                  </Link>
+                )}
+              </div>
+            </div>
+          </aside>
         </div>
       </section>
 
@@ -637,7 +663,7 @@ export default function WorkspacePage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={handleCopy}
@@ -900,7 +926,7 @@ export default function WorkspacePage() {
             key={paragraph.index}
             className="rounded-xl border border-ink-200 bg-white p-4 shadow-card"
           >
-            <header className="mb-3 flex items-center justify-between">
+            <header className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <span className="rounded-md bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">
                 第 {paragraph.index + 1} 段
               </span>

@@ -127,7 +127,7 @@ export default function AccountPage() {
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
         <h2 className="text-sm font-semibold text-ink-900">近 7 天用量</h2>
         <p className="mt-1 text-xs text-ink-500">按任务扣费字数统计，柱高表示当天消耗。</p>
-        <div className="mt-4 flex h-28 items-end gap-2">
+        <div className="mt-4 flex h-28 items-end gap-1 sm:gap-2">
           {usage.map((day) => {
             const height = Math.max(4, Math.round((day.chars / maxUsage) * 100));
             return (
@@ -136,12 +136,14 @@ export default function AccountPage() {
                 className="flex h-full flex-1 flex-col items-center justify-end gap-1"
                 title={`${day.date}：${day.chars} 字，${day.jobs} 个任务`}
               >
-                <div className="text-[10px] text-ink-500">{day.chars}</div>
+                <div className="text-[9px] text-ink-500 sm:text-[10px]">{day.chars}</div>
                 <div
                   className="w-full rounded-t bg-accent-500"
                   style={{ height: `${height}%` }}
                 />
-                <div className="text-[10px] text-ink-400">{day.date.slice(5)}</div>
+                <div className="text-[9px] text-ink-400 sm:text-[10px]">
+                  {day.date.slice(5)}
+                </div>
               </div>
             );
           })}

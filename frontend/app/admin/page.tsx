@@ -198,6 +198,28 @@ export default function AdminPage() {
         )}
       </section>
 
+      {stats && (
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {[
+            { label: "用户总数", value: stats.total_users },
+            { label: "今日新增", value: stats.users_today },
+            { label: "任务总数", value: stats.total_jobs },
+            { label: "今日任务", value: stats.jobs_today },
+            { label: "今日消耗字数", value: stats.chars_today },
+            { label: "7 日活跃", value: stats.active_users_7d },
+            { label: "24h 错误", value: stats.errors_24h },
+            { label: "用户余额合计", value: stats.credits_total },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-ink-200 bg-white p-4 shadow-card"
+            >
+              <div className="text-xs text-ink-500">{item.label}</div>
+              <div className="mt-1 text-xl font-semibold text-ink-900">{item.value}</div>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-3">
@@ -207,7 +229,7 @@ export default function AdminPage() {
               从 GitHub 拉取 main 分支最新代码，安装依赖、重新构建并重启服务。
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={checkUpdate}
@@ -274,7 +296,7 @@ export default function AdminPage() {
               key={item.id}
               className="flex flex-wrap items-center gap-2 rounded-lg border border-ink-100 px-3 py-2 text-xs"
             >
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-full sm:basis-auto">
                 <div className="truncate text-sm text-ink-800">
                   {item.email}
                   {item.is_admin && (
@@ -310,27 +332,6 @@ export default function AdminPage() {
           ))}
         </div>
       </section>
-
-
-      {stats && (
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {[
-            { label: "用户总数", value: stats.total_users },
-            { label: "今日新增", value: stats.users_today },
-            { label: "任务总数", value: stats.total_jobs },
-            { label: "今日任务", value: stats.jobs_today },
-            { label: "今日消耗字数", value: stats.chars_today },
-            { label: "7 日活跃", value: stats.active_users_7d },
-            { label: "24h 错误", value: stats.errors_24h },
-            { label: "用户余额合计", value: stats.credits_total },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-ink-200 bg-white p-4 shadow-card">
-              <div className="text-xs text-ink-500">{item.label}</div>
-              <div className="mt-1 text-xl font-semibold text-ink-900">{item.value}</div>
-            </div>
-          ))}
-        </section>
-      )}
 
       <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
         <h2 className="text-sm font-semibold text-ink-900">兑换码</h2>

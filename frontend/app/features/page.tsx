@@ -474,7 +474,7 @@ export default function FeaturesPage() {
         <div className="flex flex-wrap items-center gap-3 border-b border-ink-100 px-5 py-3">
           <span className="text-sm font-semibold text-ink-800">规则列表</span>
           <span className="text-xs text-ink-400">{filtered.length} 条</span>
-          <div className="ml-auto flex gap-2">
+          <div className="ml-auto flex flex-wrap gap-2">
             <select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value)}
@@ -502,7 +502,7 @@ export default function FeaturesPage() {
           </div>
         </div>
         <div className="max-h-[520px] overflow-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="sticky top-0 bg-ink-50 text-xs text-ink-500">
               <tr>
                 <th className="px-4 py-2 font-medium">匹配内容</th>
