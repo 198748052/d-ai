@@ -524,7 +524,7 @@ export default function LLMSettingsPage() {
           <div>
             <h2 className="text-sm font-semibold text-ink-900">避雷库</h2>
             <p className="mt-1 text-sm text-ink-500">
-              每次改写用本地模型逐句算困惑度，低困惑度句子会入库；下次改写按复发次数和最近出现时间写入提示词，提醒模型避开这些模式。
+              每次改写用本地模型逐句算困惑度，低困惑度句子会入库；下次改写按复发次数和最近出现时间作为禁用模板写入提示词（最多 50 条），要求模型不得使用这些句式。
             </p>
           </div>
           <button

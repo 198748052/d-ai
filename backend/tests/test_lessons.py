@@ -12,11 +12,13 @@ from app.services.rewriter.lessons import (
     extract_template,
     lesson_stats,
     list_lessons,
+    match_forbidden_templates,
+    recent_forbidden_templates,
     recent_lessons,
     record_lesson,
     update_lesson,
 )
-from app.services.rewriter.llm_engine import LLMContext
+from app.services.rewriter.llm_engine import LLMContext, LLMEngine
 from app.services.rewriter.orchestrator import RewriteContext, _enforce_perplexity
 from app.services.rewriter.rule_engine import RuleEngine
 
@@ -92,6 +94,38 @@ class LessonLibraryTest(unittest.TestCase):
             increment_hits=True,
         )
         self.assertEqual(list_lessons(style="academic")[0].hits, 2)
+
+    def test_prompt_injection_caps_lessons_at_50(self) -> None:
+        ctx = LLMContext(
+            lessons=[
+                f"模板{i}：这是一段用于测试的禁用模板，长度适中"
+                for i in range(80)
+            ]
+        )
+        lines: list[str] = []
+        LLMEngine._append_lessons(lines, ctx)
+        count = sum(1 for line in lines if line.startswith("- [禁用]"))
+        self.assertEqual(count, 50)
+        self.assertIn("禁用模板", "\n".join(lines))
+
+    def test_forbidden_templates_are_matched(self) -> None:
+        sentence = "首先，值得注意的是，本文在多个方面具有十分重要的意义。"
+        record_lesson(
+            style="academic",
+            sentence=sentence,
+            outcome="survived",
+            source_job_id=1,
+            increment_hits=True,
+        )
+        templates = recent_forbidden_templates("academic")
+        self.assertTrue(templates)
+        self.assertTrue(match_forbidden_templates(sentence, templates))
+        self.assertEqual(
+            match_forbidden_templates(
+                "这段文字采用了完全不同的结构和表达方式。", templates
+            ),
+            [],
+        )
 
     def test_ignored_lesson_is_not_injected(self) -> None:
         sentence = "综上所述，该研究具有重要的理论意义和现实意义。"

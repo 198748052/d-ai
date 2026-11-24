@@ -332,8 +332,7 @@ def _is_useful(row: RewriteLesson) -> bool:
     return len(re.findall(r"[\u4e00-\u9fff]", text or "")) >= 8
 
 
-def recent_lessons(style: str, limit: int = 10) -> list[str]:
-    """Return formatted avoidance hints for the prompt."""
+def recent_lesson_rows(style: str, limit: int = 10) -> list[RewriteLesson]:
     try:
         with Session(engine) as session:
             survived = session.exec(
@@ -362,10 +361,41 @@ def recent_lessons(style: str, limit: int = 10) -> list[str]:
     except Exception:  # noqa: BLE001
         return []
     return [
-        _format_hint(row)
+        row
         for row in rows
         if (row.sentence or row.pattern) and _is_useful(row)
     ]
+
+
+def recent_lessons(style: str, limit: int = 10) -> list[str]:
+    """Return formatted avoidance hints for the prompt."""
+    return [_format_hint(row) for row in recent_lesson_rows(style, limit)]
+
+
+def recent_forbidden_templates(style: str, limit: int = 10) -> list[str]:
+    """Return raw templates that must not appear in the rewritten text."""
+    return [
+        (row.template or row.pattern or row.sentence).strip()
+        for row in recent_lesson_rows(style, limit)
+    ]
+
+
+def match_forbidden_templates(text: str, templates: list[str]) -> list[str]:
+    """Return templates that still appear in the generated text."""
+    hits: list[str] = []
+    for template in templates:
+        if not template or len(template) < 8:
+            continue
+        parts = re.split(r"(\{[^}]+\})", template)
+        regex = "".join(
+            ".+?" if part.startswith("{") else re.escape(part) for part in parts
+        )
+        try:
+            if re.search(regex, text or ""):
+                hits.append(template)
+        except re.error:
+            continue
+    return hits
 
 
 def list_lessons(

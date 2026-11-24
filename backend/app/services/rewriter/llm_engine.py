@@ -402,11 +402,21 @@ class LLMEngine:
     def _append_lessons(lines: list[str], ctx: LLMContext) -> None:
         if not ctx.lessons:
             return
+        selected: list[str] = []
+        total_chars = 0
+        for item in ctx.lessons:
+            if len(selected) >= 50 or total_chars + len(item) > 5000:
+                break
+            selected.append(item)
+            total_chars += len(item)
+        if not selected:
+            return
         lines.extend(
             [
                 "",
-                "以下是本平台积累的高频机器化模式，本次要避开这些写法，不要原样复用，也不要只做同义替换：",
-                *[f"- {item}" for item in ctx.lessons[:10]],
+                "以下句式是本地困惑度检测不合格的禁用模板，输出中不得使用这些句式，也不得只替换同义词；必须改变句法结构和信息组织：",
+                *[f"- [禁用] {item}" for item in selected],
+                "如果某个禁用模板无法避开，必须换用不同的句法结构，而不是换几个词。",
             ]
         )
 

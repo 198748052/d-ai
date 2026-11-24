@@ -36,7 +36,12 @@ from .guards import (
     quality_compare,
 )
 from .leakage import clean as clean_leakage
-from .lessons import recent_lessons, record_lesson
+from .lessons import (
+    match_forbidden_templates,
+    recent_forbidden_templates,
+    recent_lessons,
+    record_lesson,
+)
 from .structure import restructure
 from .llm_engine import LLMContext, LLMEngine, LLMError
 from .rule_engine import RewriteOptions, Rule, RuleEngine
@@ -155,6 +160,7 @@ class RewriteContext:
     ppl_retry: int = 2
     ppl_severe: float = 25.0
     lessons: list[str] = field(default_factory=list)
+    forbidden_templates: list[str] = field(default_factory=list)
     whitelist: Whitelist | None = None
     guard: ReplacementGuard | None = None
     diagnosis_before: dict = field(default_factory=dict)
@@ -253,7 +259,8 @@ def build_context(req: RewriteRequest, session: Session) -> RewriteContext:
         ctx.ppl_min = float(getattr(setting, "ppl_min", 60.0) or 60.0)
         ctx.ppl_retry = max(0, int(getattr(setting, "ppl_retry", 2) or 0))
         ctx.ppl_severe = float(getattr(setting, "ppl_severe", 25.0) or 25.0)
-    ctx.lessons = recent_lessons(ctx.style)
+    ctx.lessons = recent_lessons(ctx.style, limit=50)
+    ctx.forbidden_templates = recent_forbidden_templates(ctx.style, limit=50)
     ctx.content_facts = [
         fact.model_dump() if hasattr(fact, "model_dump") else dict(fact)
         for fact in (req.content_facts or [])
@@ -810,6 +817,13 @@ async def _rewrite_one(
             restored = source
             warnings.append(f"第 {index + 1} 段改写结果为空，已保留原文")
 
+        forbidden_hits = match_forbidden_templates(restored, ctx.forbidden_templates)
+        if forbidden_hits:
+            warnings.append(
+                f"第 {index + 1} 段仍出现避雷库禁用模板："
+                + "；".join(hit[:40] for hit in forbidden_hits[:3])
+            )
+
         content_report = verify_content(
             source,
             restored,
@@ -1050,6 +1064,12 @@ async def _rewrite_document_level(
             rewritten = original
         rewritten, _ = clean_leakage(rewritten)
         diag_after = diagnose(rewritten, ctx.style)
+        forbidden_hits = match_forbidden_templates(rewritten, ctx.forbidden_templates)
+        if forbidden_hits:
+            warnings.append(
+                f"第 {index + 1} 段仍出现避雷库禁用模板："
+                + "；".join(hit[:40] for hit in forbidden_hits[:3])
+            )
         coverage, changed, untouched = _sentence_coverage(original, rewritten)
         metrics = paragraph_metrics(rewritten)
         metrics["ai_per_1000"] = diag_after.get("total_per_1000")
