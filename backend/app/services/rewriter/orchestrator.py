@@ -64,6 +64,9 @@ _HEADING_RE = re.compile(
 # 全文覆盖率目标：除标题外，至少这么多比例的句子必须真正被改写。
 COVERAGE_TARGET = 0.95
 COVERAGE_PASSES = 1
+CV_TARGET_LOW = 0.45
+CV_TARGET_HIGH = 0.6
+CV_ACCEPT_HIGH = 0.7
 _WS_RE = re.compile(r"\s+")
 
 
@@ -726,7 +729,14 @@ async def _rewrite_one(
                     for item in (diag_before.get("issues") or [])[:3]:
                         if item not in issues:
                             issues.append(item)
-                    if metrics.get("cv", 0) >= 0.7 and not runs and not issues:
+                    cv = metrics.get("cv", 0)
+                    if cv > CV_TARGET_HIGH:
+                        issues.append("句长差异过大，合并部分短句或拆分过长句")
+                    if (
+                        CV_TARGET_LOW <= cv <= CV_TARGET_HIGH
+                        and not runs
+                        and not issues
+                    ):
                         break
                     try:
                         add_rhythm()
@@ -743,14 +753,28 @@ async def _rewrite_one(
                         break
                     new_metrics = analyze(candidate)
                     new_pmetrics = paragraph_metrics(candidate)
-                    improved = new_metrics.get("cv", 0) > metrics.get("cv", 0)
+                    new_cv = new_metrics.get("cv", 0)
+                    in_range = CV_TARGET_LOW <= new_cv <= CV_TARGET_HIGH
+                    toward = (
+                        cv > CV_TARGET_HIGH and new_cv < cv
+                    ) or (
+                        cv < CV_TARGET_LOW and new_cv > cv
+                    )
                     issue_fixed = (
                         new_pmetrics["short_count"] >= pmetrics["short_count"]
                         and new_pmetrics["long_count"] >= pmetrics["long_count"]
                         and new_pmetrics["hedge_count"] >= pmetrics["hedge_count"]
                         and new_pmetrics["opening_repeats"] <= pmetrics["opening_repeats"]
                     )
-                    if not improved and not issue_fixed:
+                    if new_cv > CV_ACCEPT_HIGH:
+                        break
+                    if (
+                        cv < CV_TARGET_LOW
+                        and new_cv > CV_TARGET_HIGH
+                        and not issue_fixed
+                    ):
+                        break
+                    if not (in_range or toward or issue_fixed):
                         break
                     current = candidate
 
@@ -764,15 +788,20 @@ async def _rewrite_one(
                         pass
 
                 before_metrics = analyze(current)
-                if before_metrics.get("cv", 0) < 0.7:
-                    adjusted = await asyncio.to_thread(engine.post_rhythm, current, 0.7)
+                if before_metrics.get("cv", 0) < CV_TARGET_LOW:
+                    adjusted = await asyncio.to_thread(
+                        engine.post_rhythm,
+                        current,
+                        CV_TARGET_LOW,
+                        max_cv=CV_TARGET_HIGH,
+                    )
                     if adjusted != current:
                         after_metrics = analyze(adjusted)
                         old_hits = len(collect_hits(current, audit_engine, whitelist=ctx.whitelist))
                         new_hits = len(collect_hits(adjusted, audit_engine, whitelist=ctx.whitelist))
                         if (
                             after_metrics.get("cv", 0) > before_metrics.get("cv", 0)
-                            and after_metrics.get("cv", 0) <= 0.9
+                            and after_metrics.get("cv", 0) <= CV_TARGET_HIGH
                             and new_hits <= old_hits
                         ):
                             current = adjusted

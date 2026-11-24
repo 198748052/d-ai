@@ -126,7 +126,7 @@ class RuleEngine:
             if options.deep:
                 result = self._split_at_connectives(result)
                 result = self._thin_connectives(result)
-            result = self._optimize_rhythm(result, target_cv=0.35, max_iter=3)
+            result = self._optimize_rhythm(result, target_cv=0.4, max_iter=3)
             # S-02: 降重工具式连续短句在学术语体里是硬信号，合并回正常长度。
             result = merge_short_runs(result)
         else:
@@ -392,7 +392,13 @@ class RuleEngine:
             return None
         return left, right
 
-    def post_rhythm(self, text: str, target_cv: float = 0.5, max_iter: int = 8) -> str:
+    def post_rhythm(
+        self,
+        text: str,
+        target_cv: float = 0.5,
+        max_iter: int = 8,
+        max_cv: float = 0.7,
+    ) -> str:
         """Greedy rhythm optimizer: pick the split/merge that raises CV the most."""
         sentences = [sentence for sentence in split_sentences(text) if sentence.strip()]
         if len(sentences) < 3:
@@ -427,6 +433,12 @@ class RuleEngine:
 
             best = max(candidates, key=self._rhythm_cv)
             best_cv = self._rhythm_cv(best)
+            if best_cv > max_cv:
+                valid = [item for item in candidates if self._rhythm_cv(item) <= max_cv]
+                if not valid:
+                    break
+                best = max(valid, key=self._rhythm_cv)
+                best_cv = self._rhythm_cv(best)
             if best_cv <= current_cv + 0.01:
                 break
             sentences = best

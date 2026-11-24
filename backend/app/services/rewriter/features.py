@@ -231,7 +231,7 @@ def structural_issues(metrics: dict) -> list[dict]:
     def add(code: str, label: str, detail: str) -> None:
         issues.append({"code": code, "label": label, "detail": detail})
 
-    if metrics.get("sentences", 0) >= 4 and metrics.get("cv", 1) < 0.32:
+    if metrics.get("sentences", 0) >= 4 and metrics.get("cv", 1) < 0.4:
         add("S-01", "句长过于均匀", "句子长度接近，缺少长短句交错")
     if metrics.get("short_run", 0) > 0:
         add("S-02", "短句群堆叠", "连续三句以上都是短句，像降重工具输出")

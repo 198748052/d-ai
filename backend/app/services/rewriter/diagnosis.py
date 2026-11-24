@@ -280,7 +280,7 @@ def diagnose(text: str, context: str = "academic") -> dict:
         issues.append("结构问题：" + "、".join(item["label"] for item in structure_issues[:4]))
     if leakage_hits:
         issues.append("发现过程痕迹：" + "、".join(item["category"] for item in leakage_hits))
-    if structure.get("sentences", 0) >= 4 and structure.get("cv", 1) >= 0.32:
+    if structure.get("sentences", 0) >= 4 and structure.get("cv", 1) >= 0.4:
         pass
     else:
         if structure.get("sentences", 0) >= 4:

@@ -120,6 +120,16 @@ class StructuralGuardTest(unittest.TestCase):
         metrics = structural_metrics("这是一个基于深度学习的多模态的实时的目标检测算法。")
         self.assertGreaterEqual(metrics["de_chain"], 1)
 
+    def test_post_rhythm_respects_max_cv(self) -> None:
+        engine = RuleEngine([])
+        text = (
+            "本文研究了A对B的影响。实验采用了两种不同的方法。"
+            "结果表明该方法效果较好。进一步分析发现存在一些差异。"
+            "这些差异值得继续讨论。未来还需要更多样本验证。"
+        )
+        output = engine.post_rhythm(text, 0.45, max_cv=0.6)
+        self.assertLessEqual(structural_metrics(output)["cv"], 0.61)
+
 
 if __name__ == "__main__":
     unittest.main()
