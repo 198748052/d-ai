@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import httpx
 
+from ...core.config import FIXED_REASONING_EFFORT
 from ...core.crypto import decrypt
 from ...models.models import LLMSetting
 from .content import fact_lines
@@ -77,7 +78,7 @@ class LLMEngine:
         temperature: float = 1.2,
         max_tokens: int = 4096,
         timeout: int = 120,
-        reasoning_effort: str = "medium",
+        reasoning_effort: str = FIXED_REASONING_EFFORT,
     ):
         self.base_url = (base_url or "").rstrip("/")
         self.api_key = api_key or ""
@@ -85,7 +86,11 @@ class LLMEngine:
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
-        self.reasoning_effort = reasoning_effort if reasoning_effort in {"low", "medium", "high"} else "medium"
+        self.reasoning_effort = (
+            reasoning_effort
+            if reasoning_effort in {"low", "medium", "high"}
+            else FIXED_REASONING_EFFORT
+        )
         self._effort_supported = True
 
     @classmethod
@@ -97,7 +102,7 @@ class LLMEngine:
             temperature=setting.temperature,
             max_tokens=setting.max_tokens,
             timeout=setting.timeout,
-            reasoning_effort=getattr(setting, "reasoning_effort", "medium") or "medium",
+            reasoning_effort=FIXED_REASONING_EFFORT,
         )
 
     @property

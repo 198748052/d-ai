@@ -5,7 +5,13 @@ from dataclasses import dataclass, field
 
 from sqlmodel import Session, select
 
-from ..core.config import DEFAULT_LOCAL_DTYPE, DEFAULT_LOCAL_MODEL, LEXICON_DIR, PATTERN_DIR
+from ..core.config import (
+    DEFAULT_LOCAL_DTYPE,
+    DEFAULT_LOCAL_MODEL,
+    FIXED_REASONING_EFFORT,
+    LEXICON_DIR,
+    PATTERN_DIR,
+)
 from ..models.models import FeatureRule, LLMSetting, Preset
 
 BUILTIN_PRESETS = [
@@ -117,7 +123,7 @@ def seed(session: Session) -> None:
         setting.max_tokens = 4096
         setting.concurrency = 3
         setting.timeout = 120
-        setting.reasoning_effort = "medium"
+        setting.reasoning_effort = FIXED_REASONING_EFFORT
         setting.ppl_min = 45.0
         setting.ppl_retry = 2
         setting.ppl_severe = 20.0

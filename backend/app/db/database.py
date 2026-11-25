@@ -25,7 +25,7 @@ def _migrate() -> None:
             ("local_enabled", "BOOLEAN DEFAULT 0"),
             ("local_model", "VARCHAR DEFAULT 'Qwen/Qwen2.5-1.5B'"),
             ("local_dtype", "VARCHAR DEFAULT 'float16'"),
-            ("reasoning_effort", "VARCHAR DEFAULT 'medium'"),
+            ("reasoning_effort", "VARCHAR DEFAULT 'low'"),
             ("ppl_min", "FLOAT DEFAULT 45.0"),
             ("ppl_retry", "INTEGER DEFAULT 2"),
             ("ppl_severe", "FLOAT DEFAULT 20.0"),

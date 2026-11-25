@@ -16,6 +16,7 @@ PATTERN_DIR = APP_DIR / "data" / "patterns"
 
 DEFAULT_LLM_BASE_URL = os.getenv("LLM_DEFAULT_BASE_URL", "https://api.openai.com/v1")
 DEFAULT_LLM_MODEL = os.getenv("LLM_DEFAULT_MODEL", "gpt-4o-mini")
+FIXED_REASONING_EFFORT = "low"
 
 MAX_INPUT_CHARS = int(os.getenv("MAX_INPUT_CHARS", "30000"))
 

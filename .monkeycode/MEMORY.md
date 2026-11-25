@@ -79,7 +79,7 @@ This file records user instructions, preferences, and project knowledge for futu
   - 困惑度阈值默认 `ppl_min=45`、`ppl_severe=20`；60 会频繁触发整段重写，反而拉低质量
   - 困惑度重写有护栏：长度比 0.75-1.25、AI 特征数不得增加，不满足就放弃本次重写
   - 改写结束后若仍有规则命中，会再做一次针对性纠正
-  - 推理强度 `reasoning_effort` 默认 medium；改成 low 会明显降低 AI 特征清除效果（实测残留模板词），只在追求速度时用 low
+  - 推理强度 `reasoning_effort` 已固定为 low（唯一来源 `core/config.py:FIXED_REASONING_EFFORT`，前后端均不开放修改）；low 会降低 AI 特征清除效果（实测残留模板词），这是为速度做的取舍
   - LLM 设置：`/api/settings/llm`，当前网关 `https://wbapi.topsygf.cn/v1`，模型 `deepseek-v4.1-flash-sg`
   - API Key 用 Fernet 加密存 `data/app.db`，密钥文件 `data/secret.key`
   - 当前网关不返回 `logprobs`，无法直接用 API 算困惑度，所以用本地模型算

@@ -6,7 +6,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
-from ..core.config import DEFAULT_LOCAL_DTYPE, DEFAULT_LOCAL_MODEL
+from ..core.config import DEFAULT_LOCAL_DTYPE, DEFAULT_LOCAL_MODEL, FIXED_REASONING_EFFORT
 from ..core.crypto import decrypt, encrypt, mask_key
 from ..db.database import get_session
 from ..deps import require_admin
@@ -36,7 +36,7 @@ FIXED_SETTINGS = {
     "max_tokens": 4096,
     "concurrency": 3,
     "timeout": 120,
-    "reasoning_effort": "medium",
+    "reasoning_effort": FIXED_REASONING_EFFORT,
     "ppl_min": 45.0,
     "ppl_retry": 2,
     "ppl_severe": 20.0,
@@ -68,7 +68,7 @@ def _to_out(setting: LLMSetting) -> LLMSettingOut:
         max_tokens=setting.max_tokens,
         concurrency=setting.concurrency,
         timeout=setting.timeout,
-        reasoning_effort=getattr(setting, "reasoning_effort", "medium") or "medium",
+        reasoning_effort=FIXED_REASONING_EFFORT,
         local_enabled=getattr(setting, "local_enabled", False),
         local_model=getattr(setting, "local_model", "Qwen/Qwen2.5-1.5B"),
         local_dtype=getattr(setting, "local_dtype", "float16"),

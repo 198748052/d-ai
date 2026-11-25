@@ -160,7 +160,7 @@ class LLMSettingOut(BaseModel):
     max_tokens: int
     concurrency: int
     timeout: int
-    reasoning_effort: str = "medium"
+    reasoning_effort: str = "low"
     local_enabled: bool = False
     local_model: str = "Qwen/Qwen2.5-1.5B"
     local_dtype: str = "float16"
