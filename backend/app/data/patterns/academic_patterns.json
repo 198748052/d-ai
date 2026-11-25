@@ -606,7 +606,7 @@
       "replacements": [
         "为\\1提供\\2"
       ],
-      "severity": "low",
+      "severity": "medium",
       "note": "书面句式"
     },
     {
@@ -1576,6 +1576,127 @@
       ],
       "severity": "medium",
       "note": "的字收尾"
+    },
+    {
+      "pattern": "不仅([^，。；]{1,30})[，,]\\s*而是",
+      "replacements": [
+        "\\1，同时"
+      ],
+      "severity": "high",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（翻案腔：不仅…而是）"
+    },
+    {
+      "pattern": "不在于([^，。；]{1,20})[，,]\\s*而在于([^，。；]{1,20})",
+      "replacements": [
+        "\\1并不是关键，\\2才是"
+      ],
+      "severity": "high",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（翻案腔：不在于…而在于）"
+    },
+    {
+      "pattern": "与其说([^，。；]{1,20})[，,]\\s*不如说([^，。；]{1,20})",
+      "replacements": [
+        "更准确地说，\\2"
+      ],
+      "severity": "high",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（翻案腔：与其说…不如说）"
+    },
+    {
+      "pattern": "表面(?:上|看来)?([^，。；]{1,20})[，,]\\s*(?:实际|背后|本质)(?:上|是)?",
+      "replacements": [
+        "\\1，但实际情况是"
+      ],
+      "severity": "high",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（翻案腔：表面…实际）"
+    },
+    {
+      "pattern": "说到底[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（翻案腔：说到底）"
+    },
+    {
+      "pattern": "就像(?:一位|一个)?[^，。]{0,20}(?:导师|灯塔|钥匙|桥梁|镜子|引擎|基石|纽带)",
+      "replacements": [
+        ""
+      ],
+      "severity": "medium",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（拟人化喻体）"
+    },
+    {
+      "pattern": "实现了([^，。；]{1,12})的(提升|优化|增长|改善|转变)",
+      "replacements": [
+        "\\1得到\\2"
+      ],
+      "severity": "medium",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（名词化概括：实现了…的提升）"
+    },
+    {
+      "pattern": "(?:如果您?|你)(?:还)?有任何(?:问题|疑问)[，,]?(?:欢迎|请)?(?:随时)?(?:提问|交流|联系)?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）（客服式套话）"
+    },
+    {
+      "pattern": "(?:欢迎|请)随时(?:提问|交流|联系)",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）（客服式套话）"
+    },
+    {
+      "pattern": "如需(?:要)?(?:进一步|更多)(?:了解|信息)[，,]?(?:请|欢迎)?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）（客服式套话）"
+    },
+    {
+      "pattern": "截至(?:我的)?知识(?:截止|更新)[^。！？]*[。！？]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）（知识截止免责声明）"
+    },
+    {
+      "pattern": "说白了[，,]?",
+      "replacements": [
+        ""
+      ],
+      "severity": "high",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（禁用起手式）"
+    },
+    {
+      "pattern": "从某种程度上(?:说|讲)?",
+      "replacements": [
+        "从现有材料看",
+        "就目前证据而言"
+      ],
+      "severity": "high",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）（模糊限定）"
+    },
+    {
+      "pattern": "为([^，。；]{1,20})奠定了基础",
+      "replacements": [
+        "为\\1提供依据"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）（空洞评价）"
+    },
+    {
+      "pattern": "(?:这|该|它)?标志着([^，。；]{1,20})的(?:重要|关键)(?:转折点|转折|变化)",
+      "replacements": [
+        "\\1出现明显变化"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh）（拔高意义：标志着…关键转折点）"
     }
   ]
 }

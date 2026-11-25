@@ -317,7 +317,7 @@
       "pattern": "提供了有力支撑",
       "replacements": [
         "提供了依据",
-        "构成了支撑"
+        "补充了证据"
       ],
       "severity": "high",
       "note": "空洞评价"
@@ -2402,6 +2402,337 @@
       "severity": "high",
       "note": "抒情腔（学术语体错位）",
       "replace_mode": "all"
+    },
+    {
+      "pattern": "全面解析",
+      "replacements": [
+        "梳理",
+        "重点分析"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "多角度分析",
+      "replacements": [
+        "从几个方面分析",
+        "分层讨论"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "归因于",
+      "replacements": [
+        "源于",
+        "来自"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "涵盖",
+      "replacements": [
+        "包括",
+        "涉及"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "倾向于",
+      "replacements": [
+        "更可能",
+        "偏向"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "不断演变的格局",
+      "replacements": [
+        "变化中的形势",
+        "当前格局"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "关键转折点",
+      "replacements": [
+        "重要变化",
+        "转折"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "重要里程碑",
+      "replacements": [
+        "阶段性进展",
+        "重要节点"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "不可磨灭的印记",
+      "replacements": [
+        "持续影响",
+        "明显痕迹"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "深深植根于",
+      "replacements": [
+        "源于",
+        "建立在"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "见证了",
+      "replacements": [
+        "经历了",
+        "记录了"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "奠定基础",
+      "replacements": [
+        "提供基础",
+        "为后续分析提供依据"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "提供有力支撑",
+      "replacements": [
+        "提供依据",
+        "补充证据"
+      ],
+      "severity": "high",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "注入新动能",
+      "replacements": [
+        "带来新的变化",
+        "增加动力"
+      ],
+      "severity": "high",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "开辟新路径",
+      "replacements": [
+        "提供新的思路",
+        "探索新的方向"
+      ],
+      "severity": "high",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "深远影响",
+      "replacements": [
+        "持续影响",
+        "长期影响"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "这意味着",
+      "replacements": [
+        "这说明"
+      ],
+      "severity": "medium",
+      "note": "公开来源：qu-ai-wei 中文去 AI 味规则（baibanbao/qu-ai-wei）"
+    },
+    {
+      "pattern": "学者认为",
+      "replacements": [
+        "已有研究指出",
+        "相关文献指出"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "业内人士认为",
+      "replacements": [
+        "相关从业者认为",
+        "部分实践者认为"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "相关研究显示",
+      "replacements": [
+        "已有研究显示",
+        "相关文献显示"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "里程碑",
+      "replacements": [
+        "阶段性进展",
+        "重要节点"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "发挥重要作用",
+      "replacements": [
+        "产生影响",
+        "起到实际作用"
+      ],
+      "severity": "high",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "提供理论支撑",
+      "replacements": [
+        "提供理论依据",
+        "补充理论解释"
+      ],
+      "severity": "high",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "前所未有的",
+      "replacements": [
+        "此前少见的",
+        "近年少有的"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "蓬勃发展",
+      "replacements": [
+        "发展较快",
+        "增长明显"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "与时俱进",
+      "replacements": [
+        "随之调整",
+        "同步更新"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "日新月异",
+      "replacements": [
+        "变化很快",
+        "更新频繁"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "举足轻重",
+      "replacements": [
+        "较为重要",
+        "影响较大"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "深入剖析",
+      "replacements": [
+        "仔细分析",
+        "逐层拆解"
+      ],
+      "severity": "medium",
+      "note": "公开来源：aigc-reduce 72 个中文 AI 高频词表（xiaofenggan01/aigc-reduce）"
+    },
+    {
+      "pattern": "充满活力",
+      "replacements": [
+        "活跃",
+        "有生气"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh，基于维基百科 Signs of AI writing）"
+    },
+    {
+      "pattern": "全场景",
+      "replacements": [
+        "多种场景",
+        "各类场景"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "多层面",
+      "replacements": [
+        "多个层面",
+        "几个方面"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "护城河",
+      "replacements": [
+        "竞争优势",
+        "竞争壁垒"
+      ],
+      "severity": "medium",
+      "note": "公开来源：论文降 AIGC 高频词清单（中华网 2026-02-28）"
+    },
+    {
+      "pattern": "挑战与机遇并存",
+      "replacements": [
+        "同时存在困难和机会"
+      ],
+      "severity": "high",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh）（提纲式挑战与展望）"
+    },
+    {
+      "pattern": "未来展望",
+      "replacements": [
+        "后续研究方向",
+        "后续工作"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh）（提纲式挑战与展望）"
+    },
+    {
+      "pattern": "面临诸多挑战",
+      "replacements": [
+        "存在一些困难",
+        "面临一些问题"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh）（提纲式挑战与展望）"
+    },
+    {
+      "pattern": "不可否认",
+      "replacements": [
+        "从现有证据看",
+        "大体可以确认"
+      ],
+      "severity": "medium",
+      "note": "公开来源：Humanizer-zh 24 种 AI 写作模式（op7418/Humanizer-zh）（过度限定）"
     }
   ]
 }
