@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { apiGet, apiSend, exportDocument, fetchRewriteJob, startRewriteJob } from "@/lib/api";
 import { copyText } from "@/lib/clipboard";
 import { useAuth } from "@/components/AuthContext";
@@ -12,6 +12,7 @@ import type {
   ClarifyResponse,
   ContentFact,
   ContentReport,
+  JobDetail,
   PPLIssue,
   ParagraphResult,
   Preset,
@@ -51,8 +52,35 @@ const FLAVOR_LABELS: Record<string, string> = {
   leakage: "思维链泄露",
 };
 
+const JOB_STATUS_LABEL: Record<string, string> = {
+  running: "进行中",
+  done: "已完成",
+  error: "失败",
+  interrupted: "已中断",
+  paused: "已暂停",
+  canceled: "已取消",
+};
+
+function formatTime(value: string): string {
+  try {
+    return new Date(value).toLocaleString("zh-CN", { hour12: false });
+  } catch {
+    return value;
+  }
+}
+
 export default function WorkspacePage() {
+  return (
+    <Suspense fallback={<div className="text-sm text-ink-400">加载中…</div>}>
+      <WorkspaceContent />
+    </Suspense>
+  );
+}
+
+function WorkspaceContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const jobParam = searchParams.get("job");
   const { user, refresh } = useAuth();
   const [text, setText] = useState("");
   const [preset, setPreset] = useState<Preset | null>(null);
@@ -87,23 +115,12 @@ export default function WorkspacePage() {
     Record<string, SentenceRewriteResult>
   >({});
   const [sentenceBusy, setSentenceBusy] = useState<string | null>(null);
+  const [viewJobId, setViewJobId] = useState<number | null>(null);
+  const [viewJob, setViewJob] = useState<JobDetail | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("rewrite-draft");
-      if (!raw) return;
-      const draft = JSON.parse(raw) as { text?: string; savedAt?: string };
-      if (draft.text) {
-        setText(draft.text);
-        setDraftSavedAt(draft.savedAt ?? "");
-      }
-    } catch {
-      // ignore broken draft
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!text) return;
+    if (!text || viewJobId !== null) return;
     const timer = setTimeout(() => {
       const savedAt = new Date().toLocaleTimeString("zh-CN", {
         hour: "2-digit",
@@ -117,7 +134,7 @@ export default function WorkspacePage() {
       }
     }, 600);
     return () => clearTimeout(timer);
-  }, [text]);
+  }, [text, viewJobId]);
 
   useEffect(() => {
     apiGet<Preset[]>("/api/presets")
@@ -127,6 +144,92 @@ export default function WorkspacePage() {
       .then((data) => setRuleCount(data.length))
       .catch(() => undefined);
   }, []);
+
+  useEffect(() => {
+    const id = jobParam ? Number(jobParam) : Number.NaN;
+    if (Number.isFinite(id) && id > 0) {
+      setViewJobId(id);
+      return;
+    }
+    setViewJobId(null);
+    setViewJob(null);
+    setParagraphs([]);
+    setStats(null);
+    setTiming(null);
+    setAudit(null);
+    setWarnings([]);
+    setPplIssues([]);
+    setContentReport(null);
+    setStructureChanges([]);
+    setRewrittenText("");
+    setSentenceResults({});
+    setTotal(0);
+    try {
+      const raw = localStorage.getItem("rewrite-draft");
+      const draft = raw ? (JSON.parse(raw) as { text?: string; savedAt?: string }) : null;
+      setText(draft?.text ?? "");
+      setDraftSavedAt(draft?.savedAt ?? "");
+    } catch {
+      setText("");
+    }
+  }, [jobParam]);
+
+  useEffect(() => {
+    if (viewJobId === null) return;
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const load = async () => {
+      setViewLoading(true);
+      try {
+        const data = await apiGet<JobDetail>(`/api/jobs/${viewJobId}`);
+        if (cancelled) return;
+        setViewJob(data);
+        setText(data.original);
+        setError("");
+        const result = data.result;
+        if (result) {
+          setParagraphs(result.paragraphs ?? []);
+          setStats(result.stats ?? null);
+          setTiming(result.timing ?? null);
+          setAudit(result.audit ?? null);
+          setWarnings(result.warnings ?? []);
+          setPplIssues(result.ppl_issues ?? []);
+          setContentReport(result.content_report ?? null);
+          setStructureChanges(result.structure_changes ?? []);
+          setRewrittenText(
+            data.rewritten ||
+              (result.paragraphs ?? []).map((item) => item.rewritten).join("\n\n")
+          );
+          setTotal(result.paragraphs?.length ?? 0);
+        } else {
+          setParagraphs([]);
+          setStats(null);
+          setTiming(null);
+          setAudit(null);
+          setWarnings([]);
+          setPplIssues([]);
+          setContentReport(null);
+          setStructureChanges([]);
+          setRewrittenText("");
+          setTotal(data.progress_total ?? 0);
+        }
+        if (data.status === "running") {
+          timer = setTimeout(load, 2500);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "加载任务详情失败");
+        }
+      } finally {
+        if (!cancelled) setViewLoading(false);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [viewJobId]);
 
   const doneCount = paragraphs.length;
   const progress = total ? Math.min(100, Math.round((doneCount / total) * 100)) : 0;
@@ -348,36 +451,73 @@ export default function WorkspacePage() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-accent-100 bg-accent-50 px-2.5 py-1 text-[11px] font-medium text-accent-700">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent-600" />
-              学术论文 · 全文逐句
+      {viewJobId !== null ? (
+        <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <Link href="/history" className="text-xs text-accent-700 hover:underline">
+                返回任务记录
+              </Link>
+              <h1 className="mt-2 text-xl font-semibold tracking-tight text-ink-900">
+                任务 #{viewJobId}
+              </h1>
+              <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-400">
+                <span className="rounded-full bg-ink-100 px-2 py-0.5 text-ink-600">
+                  {JOB_STATUS_LABEL[viewJob?.status ?? ""] ?? viewJob?.status ?? "加载中"}
+                </span>
+                {viewJob && <span>创建 {formatTime(viewJob.created_at)}</span>}
+                {viewJob && <span>更新 {formatTime(viewJob.updated_at)}</span>}
+                {viewJob?.progress_total ? (
+                  <span>
+                    {viewJob.progress_completed}/{viewJob.progress_total} 段
+                  </span>
+                ) : null}
+                {viewLoading && <span>刷新中…</span>}
+              </p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
+                这是历史改写任务的完整详情，布局与改写完成后的结果页一致。
+              </p>
             </div>
-            <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink-900">
-              学术论文 AI 特征改写
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
-              段落数量、顺序和主题保持不变。先按规则库删除或替换 AI 特征，再用 LLM 分片改写并复检。
-            </p>
-            <p className="mt-2 text-xs text-ink-400">
-              当前预设：{preset?.name ?? "学术论文"} · 规则 + LLM 混合改写 · 规则库 {ruleCount || "—"} 条
-            </p>
           </div>
-          {user?.is_admin && (
-            <Link
-              href="/settings/llm"
-              className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50"
-            >
-              LLM 配置
-            </Link>
+          {viewJob?.error && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              {viewJob.error}
+            </div>
           )}
-        </div>
-      </section>
+        </section>
+      ) : (
+        <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-accent-100 bg-accent-50 px-2.5 py-1 text-[11px] font-medium text-accent-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-600" />
+                学术论文 · 全文逐句
+              </div>
+              <h1 className="mt-3 text-xl font-semibold tracking-tight text-ink-900">
+                学术论文 AI 特征改写
+              </h1>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-ink-500">
+                段落数量、顺序和主题保持不变。先按规则库删除或替换 AI 特征，再用 LLM 分片改写并复检。
+              </p>
+              <p className="mt-2 text-xs text-ink-400">
+                当前预设：{preset?.name ?? "学术论文"} · 规则 + LLM 混合改写 · 规则库 {ruleCount || "—"} 条
+              </p>
+            </div>
+            {user?.is_admin && (
+              <Link
+                href="/settings/llm"
+                className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-600 hover:bg-ink-50"
+              >
+                LLM 配置
+              </Link>
+            )}
+          </div>
+        </section>
+      )}
 
-      <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+      {viewJobId === null && (
+        <section className="rounded-xl border border-ink-200 bg-white p-5 shadow-card">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
               <label className="text-sm font-medium text-ink-800">原文</label>
@@ -533,10 +673,11 @@ export default function WorkspacePage() {
               </div>
             </div>
           </aside>
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
-      {showClarify && (
+      {viewJobId === null && showClarify && (
         <section className="rounded-xl border border-accent-200 bg-white p-5 shadow-card">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
