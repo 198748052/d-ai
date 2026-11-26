@@ -26,6 +26,8 @@ const SAMPLE = `首先，值得注意的是，人工智能技术正在快速发�
 
 此外，由此可见，我们需要进一步深入研究相关技术。与此同时，不可否认的是，人工智能在提升效率的同时，也带来了一系列新的挑战。因此，如何在发展与规范之间取得平衡，成为当前亟需解决的重要问题。`;
 
+const MAX_INPUT_CHARS = 256000;
+
 function countParagraphs(text: string): number {
   const normalized = text.replace(/\r\n?/g, "\n").trim();
   if (!normalized) return 0;
@@ -324,8 +326,8 @@ function WorkspaceContent() {
       setError("请先粘贴需要改写的文章");
       return;
     }
-    if (text.length > 30000) {
-      setError("文本过长，单次上限 30000 字，请分段处理");
+    if (text.length > MAX_INPUT_CHARS) {
+      setError(`文本过长，单次上限 ${MAX_INPUT_CHARS} 字，请分段处理`);
       return;
     }
     setRunning(true);
@@ -544,8 +546,8 @@ function WorkspaceContent() {
                 >
                   清空
                 </button>
-                <span className={text.length > 30000 ? "text-red-500" : "text-ink-400"}>
-                  {text.length} / 30000 字
+                <span className={text.length > MAX_INPUT_CHARS ? "text-red-500" : "text-ink-400"}>
+                  {text.length} / {MAX_INPUT_CHARS} 字
                 </span>
                 {draftSavedAt && <span>草稿已保存 {draftSavedAt}</span>}
               </div>

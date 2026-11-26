@@ -107,7 +107,7 @@ ruff check backend/app backend/tests
 | 变量 | 说明 |
 |---|---|
 | `APP_DATA_DIR` | 数据目录，默认 `data/` |
-| `MAX_INPUT_CHARS` | 单次改写上限，默认 30000 |
+| `MAX_INPUT_CHARS` | 单次改写上限，默认 256000 |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASSWORD` | QQ 邮箱验证码 |
 | `EMAIL_CODE_ECHO` | 测试时把验证码直接返回 |
 | `ALERT_WEBHOOK_URL` | 错误告警 webhook |

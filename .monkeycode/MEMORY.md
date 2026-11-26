@@ -123,7 +123,7 @@ This file records user instructions, preferences, and project knowledge for futu
   - 邮件通过 SMTP 发送：`SMTP_HOST=smtp.qq.com`、`SMTP_PORT=465`、`SMTP_USER`、`SMTP_PASSWORD`（QQ 邮箱授权码，不是登录密码）
   - 未配置 SMTP 时注册返回 503；测试可用 `EMAIL_CODE_ECHO=1`，验证码直接返回在接口和页面
   - 错误告警：`ALERT_WEBHOOK_URL` 支持企业微信机器人（自动识别 qyapi）或通用 `{"text": ...}` 格式；相同错误 60 秒内只告警一次
-  - 单次改写上限 30000 字（`MAX_INPUT_CHARS` 可覆盖）；任务在产出任何段落前取消会退回额度
+  - 单次改写上限 256000 字（`MAX_INPUT_CHARS` 可覆盖）；任务在产出任何段落前取消会退回额度
   - 管理员统计与错误列表：`/api/admin/stats`、`/api/admin/errors`
 
 ### 用户偏好
