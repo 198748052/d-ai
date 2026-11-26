@@ -443,7 +443,16 @@ async def _enforce_perplexity(
             return current
         previous_low = low
         try:
-            candidate = await llm.rewrite_low_perplexity(current, low, llm_ctx)
+            candidate = await llm.rewrite_low_perplexity(
+                current,
+                low,
+                llm_ctx,
+                attempt=attempt,
+                max_attempts=ctx.ppl_retry,
+                threshold=ctx.ppl_min,
+                severe_threshold=ctx.ppl_severe,
+                previous=previous_low,
+            )
         except LLMError as exc:
             warnings.append(f"第 {index + 1} 段低困惑度重写失败：{exc}")
             mark_survived(low, "重写失败，仍低于困惑度阈值")

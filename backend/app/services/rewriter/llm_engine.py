@@ -20,6 +20,15 @@ _PLACEHOLDER_RE = re.compile(r"⟦([A-Z]+)⟧")
 
 logger = logging.getLogger(__name__)
 
+REWRITE_AVOID_RULES = [
+    "- 不要只替换同义词或近义词，必须改变句法结构。",
+    "- 不要使用套话和模板句式，例如“值得注意的是”“综上所述”“由此可见”“首先/其次/最后”“随着……的推进”“在……背景下”。",
+    "- 不要堆砌连接词（此外、与此同时、因此、然而），也不要连续使用四字并列短语。",
+    "- 不要为了制造节奏把句子拆成缺主语的残句，也不要让连续多句使用相同开头。",
+    "- 不要新增或改动原文的事实、数字、引用、案例和结论。",
+    "- 不要重复上一句的意思来凑长度。",
+]
+
 STYLE_LABEL = {
     "general": "通用书面语",
     "academic": "学术论文语体，正式、严谨、克制",
@@ -486,18 +495,60 @@ class LLMEngine:
         text: str,
         flagged: list[dict],
         ctx: LLMContext,
+        attempt: int = 0,
+        max_attempts: int = 0,
+        threshold: float = 45.0,
+        severe_threshold: float | None = None,
+        previous: list[dict] | None = None,
     ) -> str:
         lines = [
-            "你是审稿编辑。下面这段文字里有些句子过于可预测，读起来像模板拼出来的（困惑度偏低）。",
-            "请重写这些句子：换具体说法、调整语序、补充限定条件或细节，让它们更像真人写的。",
-            "不要扩写，不要新增原文没有的信息；改写后整段长度与原文接近（±15% 以内）。",
-            "整段一起重写，重点处理下列句子；原意、术语、数据、引用、占位符和段落结构不变。",
-            "只输出整段正文，不要解释、不要编号、不要换行。",
-            "",
-            "必须重写的句子：",
+            "你是审稿编辑。系统用本地困惑度模型检测了这段文字，发现部分句子过于可预测，读起来像模板拼出来的。",
+            f"触发原因：下列句子的困惑度低于阈值 {threshold:g}，分数越低越像机器生成，需要针对性重写。",
         ]
+        if attempt > 0:
+            lines.append(
+                f"这是第 {attempt + 1} 轮重写（最多 {max_attempts + 1} 轮）。"
+                "上一轮改写后这些句子仍然偏可预测，说明只换同义词或小修小补无效，"
+                "必须改变句法结构和信息组织方式。"
+            )
+        else:
+            lines.append("这是首次针对性重写。")
+        lines.extend(
+            [
+                "",
+                "重写目标：",
+                "- 换具体说法、调整语序、拆分或合并句子、补充限定条件或细节，让句子更像真人写的。",
+                "- 整段一起重写，重点处理下面列出的低分句；原意、术语、数据、引用、占位符和段落结构保持不变。",
+                "- 改写后整段长度与原文接近（±15% 以内），不要扩写，不要新增原文没有的信息。",
+                "- 只输出整段正文，不要解释、不要编号、不要换行。",
+                "",
+                "避雷清单（违反任意一条都算失败）：",
+                *REWRITE_AVOID_RULES,
+                "- 不要沿用上一轮已经被判定为低困惑度的写法。",
+                "",
+                "必须重写的低困惑度句子（分数越低越严重）：",
+            ]
+        )
         for index, item in enumerate(flagged[:10], 1):
-            lines.append(f"{index}. 「{item['sentence']}」（困惑度 {item['perplexity']}）")
+            score = item.get("perplexity")
+            severe = (
+                severe_threshold is not None
+                and score is not None
+                and float(score) < severe_threshold
+            )
+            suffix = "，严重偏低" if severe else ""
+            lines.append(f"{index}. 「{item['sentence']}」（困惑度 {score}，阈值 {threshold:g}{suffix}）")
+        if previous:
+            lines.extend(
+                [
+                    "",
+                    "上一轮改写后仍然低困惑度的句子（这些写法无效，必须避开类似结构）：",
+                ]
+            )
+            for item in previous[:10]:
+                lines.append(
+                    f"- 「{item.get('sentence', '')}」（困惑度 {item.get('perplexity')}）"
+                )
         self._append_lessons(lines, ctx)
         messages = [
             {"role": "system", "content": "\n".join(lines)},
@@ -519,9 +570,13 @@ class LLMEngine:
         """Rewrite a paragraph again when some sentences were left untouched."""
         lines = [
             "你是审稿编辑。下面这段文字整体仍偏机器生成，其中一些句子几乎没有改动。",
+            "触发原因：这些句子在上一轮改写中几乎原样保留，说明改写力度不足。",
             "请整段重写：每一句都要换一种说法，不得原样保留任何一句。",
             "保持原意、术语、数据、引用、占位符和段落结构不变，不要新增原文没有的信息。",
             "只输出整段正文，不要解释、不要编号、不要换行。",
+            "",
+            "避雷清单（违反任意一条都算失败）：",
+            *REWRITE_AVOID_RULES,
             "",
             "必须改写的句子：",
         ]
