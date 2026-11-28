@@ -19,11 +19,7 @@ const QUICK_ENTRIES: QuickEntry[] = [
   { href: "/", label: "开始改写", desc: "粘贴论文，全文逐段降低 AI 味", icon: "edit" },
   { href: "/history", label: "任务记录", desc: "查看进度、结果和失败原因", icon: "clock" },
   { href: "/account", label: "我的额度", desc: "余额、兑换码和近 7 天用量", icon: "wallet" },
-  { href: "/features", label: "规则库", desc: "维护规则并运行健康检查", icon: "list", adminOnly: true },
-  { href: "/mining", label: "规则挖掘", desc: "从样本中挖掘候选规则", icon: "list", adminOnly: true },
-  { href: "/detector", label: "检测器反馈", desc: "录入检测结果并校准代理指标", icon: "list", adminOnly: true },
-  { href: "/admin", label: "运营后台", desc: "用户、额度、错误与在线更新", icon: "shield", adminOnly: true },
-  { href: "/settings/llm", label: "LLM 设置", desc: "网关、模型与本地困惑度模型", icon: "gear", adminOnly: true },
+  { href: "/settings", label: "设置", desc: "总览、管理功能、系统配置与政策说明", icon: "gear" },
 ];
 
 const STATUS_LABEL: Record<string, string> = {

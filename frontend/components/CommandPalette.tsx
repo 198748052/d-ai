@@ -14,16 +14,19 @@ type Entry = {
 };
 
 const ENTRIES: Entry[] = [
-  { href: "/dashboard", label: "总览", hint: "平台入口、最近任务与使用流程", icon: "home" },
   { href: "/", label: "改写工作台", hint: "提交文本，全文逐句降 AI 味", icon: "edit" },
   { href: "/history", label: "任务记录", hint: "查看历史任务、进度与结果", icon: "clock" },
   { href: "/account", label: "我的额度", hint: "余额、兑换码与近 7 天用量", icon: "wallet" },
-  { href: "/admin", label: "运营后台", hint: "用户、额度、错误与在线更新", icon: "shield", adminOnly: true },
-  { href: "/features", label: "规则库", hint: "规则维护与规则健康检查", icon: "list", adminOnly: true },
-  { href: "/mining", label: "规则挖掘", hint: "从高 AI / 低 AI 样本挖掘候选规则", icon: "list", adminOnly: true },
-  { href: "/detector", label: "检测器反馈", hint: "录入真实检测结果并校准代理指标", icon: "list", adminOnly: true },
-  { href: "/presets", label: "改写预设", hint: "查看学术论文预设参数", icon: "sliders", adminOnly: true },
-  { href: "/settings/llm", label: "LLM 设置", hint: "网关、模型与本地困惑度模型", icon: "gear", adminOnly: true },
+  { href: "/settings", label: "设置", hint: "总览、管理功能与政策说明", icon: "gear" },
+  { href: "/dashboard", label: "总览", hint: "设置 · 平台入口、最近任务与使用流程", icon: "home" },
+  { href: "/admin", label: "运营后台", hint: "设置 · 用户、额度、错误与在线更新", icon: "shield", adminOnly: true },
+  { href: "/features", label: "规则库", hint: "设置 · 规则维护与规则健康检查", icon: "list", adminOnly: true },
+  { href: "/mining", label: "规则挖掘", hint: "设置 · 从高 AI / 低 AI 样本挖掘候选规则", icon: "list", adminOnly: true },
+  { href: "/detector", label: "检测器反馈", hint: "设置 · 录入真实检测结果并校准代理指标", icon: "list", adminOnly: true },
+  { href: "/presets", label: "改写预设", hint: "设置 · 查看学术论文预设参数", icon: "sliders", adminOnly: true },
+  { href: "/settings/llm", label: "LLM 设置", hint: "设置 · 网关、模型与本地困惑度模型", icon: "gear", adminOnly: true },
+  { href: "/privacy", label: "隐私政策", hint: "设置 · 数据收集、使用与保护说明", icon: "shield" },
+  { href: "/terms", label: "用户协议", hint: "设置 · 服务说明、账号与使用规范", icon: "list" },
 ];
 
 export default function CommandPalette() {

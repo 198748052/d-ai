@@ -8,40 +8,37 @@ import { useAuth } from "@/components/AuthContext";
 type Item = { href: string; label: string; icon: IconName };
 
 const PUBLIC_ITEMS: Item[] = [
-  { href: "/dashboard", label: "总览", icon: "home" },
   { href: "/", label: "改写工作台", icon: "edit" },
   { href: "/history", label: "任务记录", icon: "clock" },
   { href: "/account", label: "我的额度", icon: "wallet" },
+  { href: "/settings", label: "设置", icon: "gear" },
 ];
 
 const MOBILE_ITEMS: Item[] = [
-  { href: "/dashboard", label: "总览", icon: "home" },
   { href: "/", label: "改写", icon: "edit" },
   { href: "/history", label: "记录", icon: "clock" },
-  { href: "/account", label: "我的", icon: "wallet" },
+  { href: "/account", label: "额度", icon: "wallet" },
+  { href: "/settings", label: "设置", icon: "gear" },
 ];
 
-const ADMIN_SECTIONS: { title: string; items: Item[] }[] = [
-  {
-    title: "运营",
-    items: [
-      { href: "/admin", label: "运营后台", icon: "shield" },
-      { href: "/detector", label: "检测器反馈", icon: "list" },
-    ],
-  },
-  {
-    title: "规则",
-    items: [
-      { href: "/features", label: "规则库", icon: "list" },
-      { href: "/mining", label: "规则挖掘", icon: "list" },
-      { href: "/presets", label: "改写预设", icon: "sliders" },
-    ],
-  },
-  {
-    title: "系统",
-    items: [{ href: "/settings/llm", label: "LLM 设置", icon: "gear" }],
-  },
+const SETTINGS_ROUTES = [
+  "/dashboard",
+  "/admin",
+  "/features",
+  "/mining",
+  "/detector",
+  "/presets",
+  "/privacy",
+  "/terms",
 ];
+
+function isItemActive(href: string, pathname: string): boolean {
+  if (href === "/") return pathname === "/";
+  if (href === "/settings") {
+    return pathname.startsWith("/settings") || SETTINGS_ROUTES.includes(pathname);
+  }
+  return pathname.startsWith(href);
+}
 
 export type IconName =
   | "home"
@@ -112,11 +109,10 @@ export default function Sidebar() {
 
   const sections: { title: string; items: Item[] }[] = [
     { title: "工作台", items: PUBLIC_ITEMS },
-    ...(user?.is_admin ? ADMIN_SECTIONS : []),
   ];
 
   const renderItem = (item: Item, compact: boolean) => {
-    const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+    const active = isItemActive(item.href, pathname);
     return (
       <Link
         key={item.href}
@@ -193,7 +189,7 @@ export default function Sidebar() {
   );
 
   const brand = (compact: boolean) => (
-    <Link href="/dashboard" className="flex items-center gap-2 px-1">
+    <Link href="/" className="flex items-center gap-2 px-1">
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ink-900 text-sm font-semibold text-white">
         改
       </span>
@@ -307,8 +303,7 @@ export default function Sidebar() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-40 grid grid-cols-4 border-t border-ink-200 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {MOBILE_ITEMS.map((item) => {
-          const active =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const active = isItemActive(item.href, pathname);
           return (
             <Link
               key={item.href}
