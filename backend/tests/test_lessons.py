@@ -9,6 +9,7 @@ from app.services.protector import Protector
 from app.services.rewriter.context_guard import load_whitelist
 from app.services.rewriter.lessons import (
     _normalize_pattern,
+    clear_lessons,
     extract_template,
     lesson_stats,
     list_lessons,
@@ -126,6 +127,29 @@ class LessonLibraryTest(unittest.TestCase):
             ),
             [],
         )
+
+    def test_clear_lessons_removes_rows(self) -> None:
+        sentence = "首先，值得注意的是，本文在多个方面具有十分重要的意义。"
+        record_lesson(
+            style="academic",
+            sentence=sentence,
+            outcome="survived",
+            source_job_id=1,
+            increment_hits=True,
+        )
+        record_lesson(
+            style="general",
+            sentence=sentence,
+            outcome="survived",
+            source_job_id=2,
+            increment_hits=True,
+        )
+        self.assertEqual(clear_lessons("academic"), 1)
+        self.assertEqual(list_lessons(style="academic"), [])
+        self.assertEqual(len(list_lessons(style="general")), 1)
+
+        self.assertEqual(clear_lessons(), 1)
+        self.assertEqual(lesson_stats()["total"], 0)
 
     def test_ignored_lesson_is_not_injected(self) -> None:
         sentence = "综上所述，该研究具有重要的理论意义和现实意义。"

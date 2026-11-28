@@ -5,7 +5,7 @@ import re
 from collections import Counter
 from datetime import datetime, timezone
 
-from sqlalchemy import or_
+from sqlalchemy import delete, or_
 from sqlmodel import Session, select
 
 from ...db.database import engine
@@ -450,6 +450,17 @@ def lesson_stats(style: str | None = None) -> dict:
         "pending": sum(1 for row in rows if row.outcome == "pending"),
         "categories": dict(Counter(row.category for row in rows)),
     }
+
+
+def clear_lessons(style: str | None = None) -> int:
+    """Delete every lesson row, optionally limited to one style."""
+    with Session(engine) as session:
+        statement = delete(RewriteLesson)
+        if style:
+            statement = statement.where(RewriteLesson.style == style)
+        result = session.execute(statement)
+        session.commit()
+        return result.rowcount or 0
 
 
 def update_lesson(

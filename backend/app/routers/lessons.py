@@ -5,7 +5,12 @@ from pydantic import BaseModel
 
 from ..deps import require_admin
 from ..models.models import RewriteLesson
-from ..services.rewriter.lessons import lesson_stats, list_lessons, update_lesson
+from ..services.rewriter.lessons import (
+    clear_lessons as clear_lessons_service,
+    lesson_stats,
+    list_lessons,
+    update_lesson,
+)
 
 router = APIRouter(prefix="/api/lessons", tags=["lessons"])
 
@@ -81,6 +86,14 @@ def count_lessons(
     _: object = Depends(require_admin),
 ):
     return {"count": lesson_stats(style=style)["total"]}
+
+
+@router.delete("")
+def clear_all_lessons(
+    style: str | None = None,
+    _: object = Depends(require_admin),
+):
+    return {"ok": True, "deleted": clear_lessons_service(style=style)}
 
 
 @router.put("/{lesson_id}")

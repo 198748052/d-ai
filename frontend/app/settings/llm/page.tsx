@@ -83,6 +83,8 @@ export default function LLMSettingsPage() {
   const [lessonOutcome, setLessonOutcome] = useState("");
   const [lessonCategory, setLessonCategory] = useState("");
   const [lessonQuery, setLessonQuery] = useState("");
+  const [clearingLessons, setClearingLessons] = useState(false);
+  const [lessonNotice, setLessonNotice] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -140,6 +142,28 @@ export default function LLMSettingsPage() {
       await Promise.all([loadLessons(), loadLessonStats()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "删除失败");
+    }
+  };
+
+  const handleClearLessons = async () => {
+    const total = lessonStats?.total ?? lessons.length;
+    if (total === 0) {
+      setLessonNotice("避雷库已经是空的");
+      return;
+    }
+    if (!window.confirm(`确定清空避雷库的全部 ${total} 条记录？该操作不可恢复。`)) {
+      return;
+    }
+    setClearingLessons(true);
+    setLessonNotice("");
+    try {
+      const result = await apiSend<{ ok: boolean; deleted: number }>("/api/lessons", "DELETE");
+      await Promise.all([loadLessons(), loadLessonStats()]);
+      setLessonNotice(`已清空 ${result.deleted} 条避雷记录`);
+    } catch (err) {
+      setLessonNotice(err instanceof Error ? err.message : "清空失败");
+    } finally {
+      setClearingLessons(false);
     }
   };
 
@@ -556,17 +580,32 @@ export default function LLMSettingsPage() {
               每次改写用本地模型逐句算困惑度，低困惑度句子会入库；下次改写按复发次数和最近出现时间作为禁用模板写入提示词（最多 50 条），要求模型不得使用这些句式。
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              loadLessons();
-              loadLessonStats();
-            }}
-            className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-ink-50"
-          >
-            刷新
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                loadLessons();
+                loadLessonStats();
+              }}
+              className="rounded-lg border border-ink-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-ink-50"
+            >
+              刷新
+            </button>
+            <button
+              type="button"
+              onClick={handleClearLessons}
+              disabled={clearingLessons}
+              className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              {clearingLessons ? "清空中…" : "清空避雷库"}
+            </button>
+          </div>
         </div>
+        {lessonNotice && (
+          <div className="mt-3 rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-xs text-ink-600">
+            {lessonNotice}
+          </div>
+        )}
         <div className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
           阈值已固定：达标 45、重写 2 次、严重标记 20。低困惑度句子先记为待定，重写后达标记为已修复，仍不达标记为仍不达标并累计复发次数。
         </div>
