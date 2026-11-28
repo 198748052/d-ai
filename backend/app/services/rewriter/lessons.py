@@ -10,7 +10,16 @@ from sqlmodel import Session, select
 
 from ...db.database import engine
 from ...models.models import RewriteLesson
-from .diagnosis import diagnose
+from .context_guard import load_whitelist
+from .diagnosis import (
+    ABSTRACT_NOUNS,
+    BUSINESS_JARGON,
+    CONNECTOR_CLICHES,
+    FOUR_CHAR,
+    HOLLOW_TERMS,
+    HUA_SUFFIX,
+    diagnose,
+)
 
 CATEGORY_LABELS = {
     "low_perplexity": "低困惑度",
@@ -31,6 +40,68 @@ DEFAULT_STRATEGIES = {
     "leakage": "删除过程痕迹",
     "structure": "调整句子边界和长短节奏",
 }
+
+LEXICAL_KIND = "lexical"
+MIN_TERM_HITS = 2
+
+LEXICAL_CATEGORY_LABELS = {
+    "word": "词语",
+    "collocation": "搭配",
+    "connector": "连词",
+}
+
+LEXICAL_STRATEGIES = {
+    "word": "换成具体动作、事实或非套话说法",
+    "collocation": "拆开固定搭配，改用具体动作或数据表达",
+    "connector": "删掉连接词，让上下句自然衔接",
+}
+
+CONNECTOR_TERMS = set(CONNECTOR_CLICHES) | {
+    "然而", "因此", "此外", "同时", "从而", "进而", "并且", "而且", "但是", "不过",
+    "所以", "因为", "随着", "通过", "基于", "针对", "关于", "与此同时", "一方面",
+    "另一方面", "首先", "其次", "再次", "最后", "总之", "综上", "由此可见",
+    "值得注意的是", "需要指出的是", "值得一提的是", "换句话说", "换言之", "简而言之",
+    "总的来说", "在此背景下", "基于此", "不难看出", "不难发现",
+}
+
+AI_ADVERBS = {
+    "显著", "大幅", "极大", "充分", "有效", "全面", "深入", "持续", "不断",
+    "进一步", "逐步", "快速", "稳步", "有序", "精准", "高效", "深刻", "广泛",
+    "积极",
+}
+AI_ADJECTIVES = {
+    "显著", "极大", "充分", "有效", "全面", "深入", "持续", "深刻", "广泛",
+    "积极", "重要", "关键", "核心", "巨大", "明显", "突出", "严峻", "复杂",
+    "多元", "丰富", "优质", "强大", "深厚", "坚实", "牢固", "科学", "合理",
+    "系统", "整体", "协同",
+}
+AI_VERBS = {
+    "发挥", "具有", "提升", "推动", "促进", "实现", "构建", "完善", "加强",
+    "优化", "保障", "支撑", "引领", "驱动", "融合", "创新", "赋能", "助力",
+    "形成", "打造", "夯实", "筑牢", "激发", "释放", "增强", "拓展", "深化",
+    "推进", "落实", "贯彻", "聚焦", "围绕", "服务",
+}
+
+AI_WORD_TERMS = set(BUSINESS_JARGON) | set(HOLLOW_TERMS) | set(HUA_SUFFIX) | set(ABSTRACT_NOUNS) | {
+    "至关重要", "不可或缺", "毋庸置疑", "显而易见", "不容忽视", "普遍认为",
+    "值得注意",
+} | AI_ADVERBS
+
+COLLOCATION_TERMS = set(FOUR_CHAR) | {
+    "具有重要意义", "具有深远影响", "发挥重要作用", "发挥关键作用", "奠定坚实基础",
+    "提供有力支撑", "注入新动能", "开辟新路径", "深度融合", "全面提升", "持续优化",
+    "不断完善", "进一步加强", "有效衔接", "有机结合", "稳步推进", "扎实推进",
+    "统筹兼顾", "协调推进", "精准发力", "系统谋划", "保驾护航", "添砖加瓦",
+    "提质增效", "转型升级", "高质量发展", "新质生产力", "顶层设计", "底层逻辑",
+    "闭环管理", "生态体系", "体制机制", "能力建设", "价值引领", "问题导向",
+    "目标导向", "显著提升", "显著改善", "极大提升", "有效提升", "有效促进",
+    "有力推动", "深刻影响", "深远影响", "重要意义", "重要作用", "核心要素",
+    "关键环节", "重要保障", "重要支撑",
+}
+
+_KNOWN_TERMS = CONNECTOR_TERMS | AI_WORD_TERMS | COLLOCATION_TERMS
+_CONTENT_FLAGS = ("n", "v", "a", "d")
+_TERM_RE = re.compile(r"[\u4e00-\u9fff]{2,12}")
 
 _NUMBER_RE = re.compile(r"\d+(?:\.\d+)?%?")
 _DATE_RE = re.compile(
@@ -146,6 +217,97 @@ def _similarity(left: str, right: str) -> float:
     return difflib.SequenceMatcher(None, left, right).ratio()
 
 
+def _term_category(term: str) -> tuple[str, str] | None:
+    if term in CONNECTOR_TERMS:
+        return "connector", "connector"
+    if term in COLLOCATION_TERMS:
+        return "collocation", "phrase"
+    if term in AI_WORD_TERMS:
+        return "word", "word"
+    return None
+
+
+def _add_term(
+    bucket: dict[str, tuple[str, str]],
+    term: str,
+    category: str,
+    scope: str,
+) -> None:
+    term = (term or "").strip()
+    if not _TERM_RE.fullmatch(term):
+        return
+    bucket.setdefault(term, (category, scope))
+
+
+def _is_ai_pair(left: str, left_flag: str, right: str, right_flag: str) -> bool:
+    if left_flag.startswith("d") and right_flag.startswith("v"):
+        return left in AI_ADVERBS or left in AI_WORD_TERMS
+    if left_flag.startswith("a") and right_flag.startswith("n"):
+        return left in AI_ADJECTIVES or right in AI_WORD_TERMS
+    if left_flag.startswith("v") and right_flag.startswith("n"):
+        return right in AI_WORD_TERMS
+    return False
+
+
+def extract_lexical_terms(text: str) -> dict[str, tuple[str, str]]:
+    """Extract AI-heavy words, collocations and connectors from a sentence.
+
+    The returned mapping is ``term -> (category, scope)`` where category is
+    ``word``, ``collocation`` or ``connector``.
+    """
+    value = (text or "").strip()
+    if len(value) < 6:
+        return {}
+
+    bucket: dict[str, tuple[str, str]] = {}
+    whitelist_literals = set(load_whitelist().literals)
+
+    for phrase in sorted(_KNOWN_TERMS, key=len, reverse=True):
+        if phrase in whitelist_literals or phrase not in value:
+            continue
+        meta = _term_category(phrase)
+        if meta:
+            _add_term(bucket, phrase, meta[0], meta[1])
+
+    try:
+        import jieba.posseg as pseg
+
+        tokens = [(word, flag) for word, flag in pseg.cut(value) if word.strip()]
+    except Exception:  # noqa: BLE001
+        tokens = []
+
+    for word, _flag in tokens:
+        meta = _term_category(word)
+        if meta and word not in whitelist_literals:
+            _add_term(bucket, word, meta[0], meta[1])
+
+    previous: tuple[str, str] | None = None
+    for word, flag in tokens:
+        if word in {"的", "地", "得", "了", "着", "过"}:
+            continue
+        if not _TERM_RE.fullmatch(word) or not flag.startswith(_CONTENT_FLAGS):
+            previous = None
+            continue
+        if previous is not None:
+            left, left_flag = previous
+            pair = left + word
+            if pair not in whitelist_literals and (
+                pair in COLLOCATION_TERMS
+                or _is_ai_pair(left, left_flag, word, flag)
+            ):
+                _add_term(bucket, pair, "collocation", "phrase")
+        previous = (word, flag)
+
+    kept: dict[str, tuple[str, str]] = {}
+    for term in sorted(bucket, key=len, reverse=True):
+        if any(term != other and term in other for other in kept):
+            continue
+        kept[term] = bucket[term]
+        if len(kept) >= 12:
+            break
+    return kept
+
+
 def _classify(text: str, style: str) -> str:
     try:
         result = diagnose(text, style)
@@ -226,73 +388,77 @@ def record_lesson(
     category: str = "",
     strategy: str = "",
 ) -> None:
-    """Persist a low-perplexity sentence or clause in the avoidance library."""
+    """Persist AI-heavy words, collocations and connectors from a low-PPL sentence.
+
+    A term becomes active only after it appears in at least ``MIN_TERM_HITS``
+    distinct sentences, so one-off expressions do not enter the prompt.
+    """
     text = (sentence or "").strip()
-    if not text or len(text) < 10:
+    if not text or len(text) < 6:
         return
-    pattern = _normalize_pattern(text)
-    # 纯引用、纯数字或信息量过低的片段不适合作为避雷模式。
-    if len(re.findall(r"[\u4e00-\u9fff]", pattern)) < 8:
+    terms = extract_lexical_terms(text)
+    if not terms:
         return
-    template = extract_template(pattern)
-    resolved_category = category or _classify(text, style)
-    resolved_strategy = strategy or DEFAULT_STRATEGIES.get(resolved_category, "")
     now = datetime.now(timezone.utc)
     try:
         with Session(engine) as session:
-            row = _find_existing(session, style, pattern, template, text)
-            if row is not None:
-                old_job = row.source_job_id
-                if increment_hits and (source_job_id is None or old_job != source_job_id):
-                    row.hits += 1
-                if perplexity > 0:
-                    row.perplexity = round(
-                        min(row.perplexity or perplexity, perplexity), 2
-                    )
-                if threshold > 0:
-                    row.threshold = round(threshold, 2)
-                if outcome == "survived":
-                    row.outcome = "survived"
-                elif row.outcome != "survived":
-                    row.outcome = outcome
-                if row.status != "ignored" and outcome == "survived":
-                    row.status = "active"
-                row.last_seen_at = now
-                row.updated_at = now
-                if source_job_id is not None:
-                    row.source_job_id = source_job_id
-                row.pattern = row.pattern or pattern
-                row.template = row.template or template
-                if resolved_category and (
-                    not row.category or row.category == "low_perplexity"
-                ):
-                    row.category = resolved_category
-                row.strategy = row.strategy or resolved_strategy
-                row.scope = row.scope or scope
-                row.note = note or row.note
-                session.add(row)
-            else:
-                session.add(
-                    RewriteLesson(
-                        style=style,
-                        kind="low_perplexity",
-                        sentence=text,
-                        pattern=pattern,
-                        template=template,
-                        category=resolved_category,
-                        outcome=outcome,
-                        status="active",
-                        scope=scope,
-                        strategy=resolved_strategy,
-                        original=(original or "").strip(),
-                        perplexity=round(perplexity, 2),
-                        threshold=round(threshold, 2),
-                        hits=1,
-                        source_job_id=source_job_id,
-                        last_seen_at=now,
-                        note=note,
-                    )
+            existing = session.exec(
+                select(RewriteLesson).where(
+                    RewriteLesson.style == style,
+                    RewriteLesson.kind == LEXICAL_KIND,
+                    RewriteLesson.pattern.in_(list(terms)),
                 )
+            ).all()
+            rows_by_term = {row.pattern: row for row in existing}
+            for term, (term_category, term_scope) in terms.items():
+                row = rows_by_term.get(term)
+                if row is not None:
+                    if row.sentence != text:
+                        row.hits += 1
+                    if perplexity > 0:
+                        row.perplexity = round(
+                            min(row.perplexity or perplexity, perplexity), 2
+                        )
+                    if threshold > 0:
+                        row.threshold = round(threshold, 2)
+                    if outcome == "survived":
+                        row.outcome = "survived"
+                    elif row.outcome != "survived":
+                        row.outcome = outcome
+                    if row.status == "candidate" and row.hits >= MIN_TERM_HITS:
+                        row.status = "active"
+                    row.last_seen_at = now
+                    row.updated_at = now
+                    row.sentence = text
+                    if source_job_id is not None:
+                        row.source_job_id = source_job_id
+                    row.category = row.category or term_category
+                    row.scope = row.scope or term_scope
+                    row.strategy = row.strategy or LEXICAL_STRATEGIES[term_category]
+                    row.note = note or row.note
+                    session.add(row)
+                else:
+                    session.add(
+                        RewriteLesson(
+                            style=style,
+                            kind=LEXICAL_KIND,
+                            sentence=text,
+                            pattern=term,
+                            template="",
+                            category=term_category,
+                            outcome=outcome,
+                            status="active" if MIN_TERM_HITS <= 1 else "candidate",
+                            scope=term_scope,
+                            strategy=LEXICAL_STRATEGIES[term_category],
+                            original=(original or "").strip()[:200],
+                            perplexity=round(perplexity, 2),
+                            threshold=round(threshold, 2),
+                            hits=1,
+                            source_job_id=source_job_id,
+                            last_seen_at=now,
+                            note=note,
+                        )
+                    )
             session.commit()
     except Exception:  # noqa: BLE001
         pass
@@ -321,80 +487,60 @@ def backfill_templates() -> int:
 
 
 def _format_hint(row: RewriteLesson) -> str:
-    label = CATEGORY_LABELS.get(row.category, row.category or "低困惑度")
-    pattern = (row.template or row.pattern or row.sentence or "").strip()[:90]
-    strategy = (row.strategy or DEFAULT_STRATEGIES.get(row.category, "")).strip()
-    return f"[{label}] {pattern}" + (f" → {strategy}" if strategy else "")
+    label = LEXICAL_CATEGORY_LABELS.get(row.category, "词语")
+    term = (row.pattern or "").strip()
+    strategy = (row.strategy or LEXICAL_STRATEGIES.get(row.category, "")).strip()
+    return f"[{label}] {term}" + (f" → {strategy}" if strategy else "")
 
 
 def _is_useful(row: RewriteLesson) -> bool:
-    text = row.template or row.pattern or row.sentence
-    return len(re.findall(r"[\u4e00-\u9fff]", text or "")) >= 8
+    text = row.pattern or row.template or row.sentence
+    return len(re.findall(r"[\u4e00-\u9fff]", text or "")) >= 2
 
 
 def recent_lesson_rows(style: str, limit: int = 10) -> list[RewriteLesson]:
     try:
         with Session(engine) as session:
-            survived = session.exec(
+            rows = session.exec(
                 select(RewriteLesson)
                 .where(
                     RewriteLesson.style == style,
+                    RewriteLesson.kind == LEXICAL_KIND,
                     RewriteLesson.status == "active",
-                    RewriteLesson.outcome == "survived",
                 )
                 .order_by(RewriteLesson.hits.desc(), RewriteLesson.last_seen_at.desc())
                 .limit(limit)
             ).all()
-            rows = list(survived)
-            if len(rows) < limit:
-                fixed = session.exec(
-                    select(RewriteLesson)
-                    .where(
-                        RewriteLesson.style == style,
-                        RewriteLesson.status == "active",
-                        RewriteLesson.outcome == "fixed",
-                    )
-                    .order_by(RewriteLesson.hits.desc(), RewriteLesson.last_seen_at.desc())
-                    .limit(limit - len(rows))
-                ).all()
-                rows.extend(fixed)
     except Exception:  # noqa: BLE001
         return []
-    return [
-        row
-        for row in rows
-        if (row.sentence or row.pattern) and _is_useful(row)
-    ]
+    return [row for row in rows if row.pattern and _is_useful(row)]
 
 
 def recent_lessons(style: str, limit: int = 10) -> list[str]:
-    """Return formatted avoidance hints for the prompt."""
+    """Return formatted forbidden words, collocations and connectors."""
     return [_format_hint(row) for row in recent_lesson_rows(style, limit)]
 
 
-def recent_forbidden_templates(style: str, limit: int = 10) -> list[str]:
-    """Return raw templates that must not appear in the rewritten text."""
+def recent_forbidden_terms(style: str, limit: int = 10) -> list[str]:
+    """Return raw terms that must not appear in the rewritten text."""
     return [
-        (row.template or row.pattern or row.sentence).strip()
+        row.pattern.strip()
         for row in recent_lesson_rows(style, limit)
+        if row.pattern and row.pattern.strip()
     ]
 
 
-def match_forbidden_templates(text: str, templates: list[str]) -> list[str]:
-    """Return templates that still appear in the generated text."""
+def match_forbidden_terms(text: str, terms: list[str]) -> list[str]:
+    """Return forbidden terms that still appear in the generated text."""
     hits: list[str] = []
-    for template in templates:
-        if not template or len(template) < 8:
+    seen: set[str] = set()
+    for term in terms:
+        value = (term or "").strip()
+        if len(value) < 2 or value in seen:
             continue
-        parts = re.split(r"(\{[^}]+\})", template)
-        regex = "".join(
-            ".+?" if part.startswith("{") else re.escape(part) for part in parts
-        )
-        try:
-            if re.search(regex, text or ""):
-                hits.append(template)
-        except re.error:
-            continue
+        if value in (text or ""):
+            hits.append(value)
+            seen.add(value)
     return hits
 
 
@@ -440,15 +586,22 @@ def lesson_stats(style: str | None = None) -> dict:
         if style:
             query = query.where(RewriteLesson.style == style)
         rows = session.exec(query).all()
+    lexical = [row for row in rows if row.kind == LEXICAL_KIND]
     return {
         "total": len(rows),
-        "active": sum(1 for row in rows if row.status == "active"),
-        "ignored": sum(1 for row in rows if row.status == "ignored"),
-        "resolved": sum(1 for row in rows if row.status == "resolved"),
-        "survived": sum(1 for row in rows if row.outcome == "survived"),
-        "fixed": sum(1 for row in rows if row.outcome == "fixed"),
-        "pending": sum(1 for row in rows if row.outcome == "pending"),
-        "categories": dict(Counter(row.category for row in rows)),
+        "lexical_total": len(lexical),
+        "legacy": len(rows) - len(lexical),
+        "active": sum(1 for row in lexical if row.status == "active"),
+        "candidate": sum(1 for row in lexical if row.status == "candidate"),
+        "ignored": sum(1 for row in lexical if row.status == "ignored"),
+        "resolved": sum(1 for row in lexical if row.status == "resolved"),
+        "survived": sum(1 for row in lexical if row.outcome == "survived"),
+        "fixed": sum(1 for row in lexical if row.outcome == "fixed"),
+        "pending": sum(1 for row in lexical if row.outcome == "pending"),
+        "words": sum(1 for row in lexical if row.category == "word"),
+        "collocations": sum(1 for row in lexical if row.category == "collocation"),
+        "connectors": sum(1 for row in lexical if row.category == "connector"),
+        "categories": dict(Counter(row.category for row in lexical)),
     }
 
 

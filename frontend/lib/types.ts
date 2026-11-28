@@ -300,12 +300,18 @@ export interface RewriteLesson {
 
 export interface LessonStats {
   total: number;
+  lexical_total: number;
+  legacy: number;
   active: number;
+  candidate: number;
   ignored: number;
   resolved: number;
   survived: number;
   fixed: number;
   pending: number;
+  words: number;
+  collocations: number;
+  connectors: number;
   categories: Record<string, number>;
 }
 

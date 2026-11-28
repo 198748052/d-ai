@@ -35,6 +35,9 @@ const PROVIDERS = [
 ];
 
 const LESSON_CATEGORIES: Record<string, string> = {
+  word: "词语",
+  collocation: "搭配",
+  connector: "连词",
   low_perplexity: "低困惑度",
   template: "模板句式",
   high_freq: "高频套话",
@@ -52,6 +55,7 @@ const LESSON_OUTCOMES: Record<string, string> = {
 
 const LESSON_STATUSES: Record<string, string> = {
   active: "启用",
+  candidate: "观察中",
   ignored: "已忽略",
   resolved: "已解决",
 };
@@ -577,7 +581,7 @@ export default function LLMSettingsPage() {
           <div>
             <h2 className="text-sm font-semibold text-ink-900">避雷库</h2>
             <p className="mt-1 text-sm text-ink-500">
-              每次改写用本地模型逐句算困惑度，低困惑度句子会入库；下次改写按复发次数和最近出现时间作为禁用模板写入提示词（最多 50 条），要求模型不得使用这些句式。
+              每次改写用本地模型逐句算困惑度，从低困惑度句子里提取 AI 高频词语、固定搭配和连接词；同一表达重复出现后才启用，作为禁用词写入提示词（最多 50 条）。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -607,7 +611,7 @@ export default function LLMSettingsPage() {
           </div>
         )}
         <div className="mt-4 rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-500">
-          阈值已固定：达标 45、重写 2 次、严重标记 20。低困惑度句子先记为待定，重写后达标记为已修复，仍不达标记为仍不达标并累计复发次数。
+          阈值已固定：达标 45、重写 2 次、严重标记 20。同一词语、搭配或连词出现在 2 个以上低困惑度句子后才启用；只出现一次时先进入观察中。
         </div>
         {lessonStats && (
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -615,24 +619,35 @@ export default function LLMSettingsPage() {
               总条目 <strong className="text-ink-900">{lessonStats.total}</strong>
             </span>
             <span className="rounded-md bg-emerald-50 px-2 py-1 text-emerald-700">
-              活跃 {lessonStats.active}
+              已启用 {lessonStats.active}
             </span>
             <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700">
-              仍不达标 {lessonStats.survived}
-            </span>
-            <span className="rounded-md bg-sky-50 px-2 py-1 text-sky-700">
-              已修复 {lessonStats.fixed}
+              观察中 {lessonStats.candidate}
             </span>
             <span className="rounded-md bg-ink-100 px-2 py-1 text-ink-500">
               已忽略 {lessonStats.ignored}
             </span>
+            <span className="rounded-md bg-sky-50 px-2 py-1 text-sky-700">
+              词语 {lessonStats.words}
+            </span>
+            <span className="rounded-md bg-sky-50 px-2 py-1 text-sky-700">
+              搭配 {lessonStats.collocations}
+            </span>
+            <span className="rounded-md bg-sky-50 px-2 py-1 text-sky-700">
+              连词 {lessonStats.connectors}
+            </span>
+            {lessonStats.legacy > 0 && (
+              <span className="rounded-md bg-amber-50 px-2 py-1 text-amber-700">
+                旧模板 {lessonStats.legacy}
+              </span>
+            )}
           </div>
         )}
         <div className="mt-3 flex flex-wrap gap-2">
           <input
             value={lessonQuery}
             onChange={(event) => setLessonQuery(event.target.value)}
-            placeholder="搜索句子或模式…"
+            placeholder="搜索词语、搭配或连词…"
             className="min-w-[180px] flex-1 rounded-lg border border-ink-200 px-3 py-1.5 text-sm outline-none focus:border-accent-500"
           />
           <select
@@ -686,26 +701,34 @@ export default function LLMSettingsPage() {
                     <span className="rounded bg-ink-100 px-1.5 py-0.5 text-ink-600">
                       {LESSON_CATEGORIES[item.category] ?? item.category}
                     </span>
-                    <span className={outcomeClass(item.outcome)}>
-                      {LESSON_OUTCOMES[item.outcome] ?? item.outcome}
-                    </span>
+                    {item.kind !== "lexical" && (
+                      <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700">
+                        旧模板
+                      </span>
+                    )}
                     <span>{LESSON_STATUSES[item.status] ?? item.status}</span>
+                    {item.kind === "lexical" ? (
+                      <span>出现 {item.hits} 次</span>
+                    ) : (
+                      <span className={outcomeClass(item.outcome)}>
+                        {LESSON_OUTCOMES[item.outcome] ?? item.outcome}
+                      </span>
+                    )}
                     <span>困惑度 {item.perplexity}</span>
-                    <span>出现 {item.hits} 次</span>
                     {item.last_seen_at && (
                       <span>最近 {new Date(item.last_seen_at).toLocaleString("zh-CN")}</span>
                     )}
                   </div>
-                  <div className="mt-1 text-sm text-ink-800">
-                    {item.template || item.pattern || item.sentence}
+                  <div className="mt-1 text-sm font-medium text-ink-800">
+                    {item.kind === "lexical"
+                      ? item.pattern
+                      : item.template || item.pattern || item.sentence}
                   </div>
-                  {item.template && item.pattern && item.template !== item.pattern && (
-                    <div className="mt-1 text-xs text-ink-400">骨架：{item.pattern}</div>
+                  {item.kind === "lexical" && item.sentence && (
+                    <div className="mt-1 line-clamp-2 text-xs text-ink-400">
+                      例句：{item.sentence}
+                    </div>
                   )}
-                  {item.sentence &&
-                    item.sentence !== (item.template || item.pattern) && (
-                      <div className="mt-1 text-xs text-ink-400">原句：{item.sentence}</div>
-                    )}
                   {item.strategy && (
                     <div className="mt-1 text-xs text-accent-700">
                       策略：{item.strategy}
